@@ -5,7 +5,6 @@ import {Test, console2} from "forge-std/Test.sol";
 import {CreatorToken} from "src/CreatorToken.sol";
 
 contract CreatorTokenTest is Test {
-
   CreatorToken public creatorToken;
   address public creator = address(0xc2ea702);
 
@@ -22,5 +21,10 @@ contract Deployment is CreatorTokenTest {
     assertEq(creatorToken.name(), CREATOR_TOKEN_NAME);
     assertEq(creatorToken.symbol(), CREATOR_TOKEN_SYMBOL);
     assertEq(creatorToken.creator(), creator);
+  }
+
+  function test_FirstTokenIsMintedToCreator() public {
+    assertEq(creatorToken.balanceOf(creator), 1);
+    assertEq(creatorToken.ownerOf(1), creator);
   }
 }
