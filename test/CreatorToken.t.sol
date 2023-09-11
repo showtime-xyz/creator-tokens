@@ -5,7 +5,6 @@ import {Test, console2} from "forge-std/Test.sol";
 import {CreatorToken} from "src/CreatorToken.sol";
 import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 
-
 contract CreatorTokenTest is Test {
   IERC20 public payToken;
   CreatorToken public creatorToken;
@@ -40,9 +39,7 @@ contract Deployment is CreatorTokenTest {
 
 contract Minting is CreatorTokenTest {
   function test_SecondTokenIsMintedForOnePaymentToken(address _minter) public {
-    vm.assume(_minter != address(0) &&
-      _minter != address(creatorToken)
-    );
+    vm.assume(_minter != address(0) && _minter != address(creatorToken));
 
     deal(address(payToken), _minter, BASE_PAY_AMOUNT);
 

@@ -22,8 +22,23 @@ contract CreatorToken is ERC721 {
   }
 
   function payAndMint(uint256 _maxPayment) public {
+    uint256 _mintPrice = _temporaryGetNextTokenPrice();
+
+    // TODO: Validate mint price is less then or equal to max price
+
+    // TODO: Emit minting event that includes receiving address, token Id, AND payment amount for
+    // mint
+
+    // TODO: Write a version of this method that takes the _mintTo address (refactor w/ shared
+    // internal method)
+
     _mintAndIncrement(msg.sender);
-    payToken.safeTransferFrom(msg.sender, address(this), 1e18);
+    payToken.safeTransferFrom(msg.sender, address(this), _mintPrice);
+  }
+
+  // Placeholder function for an eventual bonding curve function and/or contract
+  function _temporaryGetNextTokenPrice() public pure returns (uint256) {
+    return 1e18;
   }
 
   function _mintAndIncrement(address _to) private {
