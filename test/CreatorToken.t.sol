@@ -17,6 +17,8 @@ contract CreatorTokenTest is Test {
   string PAY_TOKEN_SYMBOL = "PAY";
   uint256 BASE_PAY_AMOUNT = 1e18; // Because our test token has 18 decimals
 
+  event Minted(address indexed _to, uint256 indexed _tokenId, uint256 _paymentAmount);
+
   function setUp() public {
     payToken = new ERC20(PAY_TOKEN_NAME, PAY_TOKEN_SYMBOL);
     creatorToken = new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, payToken);
@@ -40,6 +42,7 @@ contract Deployment is CreatorTokenTest {
 contract Minting is CreatorTokenTest {
   function test_SecondTokenIsMintedForOnePaymentToken(address _minter) public {
     vm.assume(_minter != address(0) && _minter != address(creatorToken));
+    uint256 originalMinterBalance = creatorToken.balanceOf(_minter);
 
     deal(address(payToken), _minter, BASE_PAY_AMOUNT);
 
@@ -48,8 +51,50 @@ contract Minting is CreatorTokenTest {
     creatorToken.payAndMint(BASE_PAY_AMOUNT);
     vm.stopPrank();
 
-    assertEq(creatorToken.balanceOf(_minter), 1);
+    assertEq(creatorToken.balanceOf(_minter), originalMinterBalance + 1);
     assertEq(payToken.balanceOf(_minter), 0);
     assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
+  }
+
+  function test_payAndMintWithMintToAddress(address _minter, address _mintTo) public {
+    vm.assume(_minter != address(0) && _minter != address(creatorToken));
+    vm.assume(_mintTo != address(0) && _mintTo != address(creatorToken));
+    uint256 originalMinterBalance = creatorToken.balanceOf(_mintTo);
+
+    deal(address(payToken), _minter, BASE_PAY_AMOUNT);
+
+    vm.startPrank(_minter);
+    payToken.approve(address(creatorToken), type(uint256).max);
+    creatorToken.payAndMint(_mintTo, BASE_PAY_AMOUNT);
+    vm.stopPrank();
+
+    assertEq(creatorToken.balanceOf(_mintTo), originalMinterBalance + 1);
+    assertEq(payToken.balanceOf(_minter), 0);
+    assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
+  }
+
+  function testEmitsMintedEvent(address _minter) public {
+    uint256 lastIdStorageSlot = 8; // from `forge inspect CreatorToken storage-layout` command
+    uint256 tokenId = uint256(vm.load(address(creatorToken), bytes32(lastIdStorageSlot))) + 1;
+
+    vm.assume(_minter != address(0) && _minter != address(creatorToken));
+    deal(address(payToken), _minter, BASE_PAY_AMOUNT);
+
+    vm.startPrank(_minter);
+    payToken.approve(address(creatorToken), type(uint256).max);
+    vm.expectEmit(true, true, true, true);
+    emit Minted(_minter, tokenId, BASE_PAY_AMOUNT);
+    creatorToken.payAndMint(BASE_PAY_AMOUNT);
+    vm.stopPrank();
+  }
+
+  function testRevertsIfMintPriceExceedsMaxPayment(uint256 _maxPayment) public {
+    vm.assume(_maxPayment < BASE_PAY_AMOUNT);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__MaxPaymentExceeded.selector, BASE_PAY_AMOUNT, _maxPayment
+      )
+    );
+    creatorToken.payAndMint(_maxPayment);
   }
 }
