@@ -73,7 +73,7 @@ contract Minting is CreatorTokenTest {
     assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
   }
 
-  function testEmitsMintedEvent(address _minter) public {
+  function test_EmitsMintedEvent(address _minter) public {
     uint256 lastIdStorageSlot = 8; // from `forge inspect CreatorToken storage-layout` command
     uint256 tokenId = uint256(vm.load(address(creatorToken), bytes32(lastIdStorageSlot))) + 1;
 
@@ -88,7 +88,7 @@ contract Minting is CreatorTokenTest {
     vm.stopPrank();
   }
 
-  function testRevertsIfMintPriceExceedsMaxPayment(uint256 _maxPayment) public {
+  function test_RevertIf_MintPriceExceedsMaxPayment(uint256 _maxPayment) public {
     vm.assume(_maxPayment < BASE_PAY_AMOUNT);
     vm.expectRevert(
       abi.encodeWithSelector(
