@@ -56,7 +56,7 @@ contract Minting is CreatorTokenTest {
     assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
   }
 
-  function test_payAndMintWithMintToAddress(address _minter, address _mintTo) public {
+  function test_PayAndMintWithMintToAddress(address _minter, address _mintTo) public {
     vm.assume(_minter != address(0) && _minter != address(creatorToken));
     vm.assume(_mintTo != address(0) && _mintTo != address(creatorToken));
     uint256 originalMinterBalance = creatorToken.balanceOf(_mintTo);
@@ -74,16 +74,13 @@ contract Minting is CreatorTokenTest {
   }
 
   function test_EmitsMintedEvent(address _minter) public {
-    uint256 lastIdStorageSlot = 8; // from `forge inspect CreatorToken storage-layout` command
-    uint256 tokenId = uint256(vm.load(address(creatorToken), bytes32(lastIdStorageSlot))) + 1;
-
     vm.assume(_minter != address(0) && _minter != address(creatorToken));
     deal(address(payToken), _minter, BASE_PAY_AMOUNT);
 
     vm.startPrank(_minter);
     payToken.approve(address(creatorToken), type(uint256).max);
     vm.expectEmit(true, true, true, true);
-    emit Minted(_minter, tokenId, BASE_PAY_AMOUNT);
+    emit Minted(_minter, creatorToken.lastId() + 1, BASE_PAY_AMOUNT);
     creatorToken.payAndMint(BASE_PAY_AMOUNT);
     vm.stopPrank();
   }
