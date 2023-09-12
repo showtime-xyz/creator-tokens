@@ -17,7 +17,9 @@ contract CreatorTokenTest is Test {
   string PAY_TOKEN_SYMBOL = "PAY";
   uint256 BASE_PAY_AMOUNT = 1e18; // Because our test token has 18 decimals
 
-  event Minted(address indexed _to, uint256 indexed _tokenId, uint256 _paymentAmount);
+  event Bought(
+    address indexed _buyer, address indexed _to, uint256 indexed _tokenId, uint256 _paymentAmount
+  );
 
   function setUp() public {
     payToken = new ERC20(PAY_TOKEN_NAME, PAY_TOKEN_SYMBOL);
@@ -39,59 +41,59 @@ contract Deployment is CreatorTokenTest {
   }
 }
 
-contract Minting is CreatorTokenTest {
-  function test_SecondTokenIsMintedForOnePaymentToken(address _minter) public {
-    vm.assume(_minter != address(0) && _minter != address(creatorToken));
-    uint256 originalMinterBalance = creatorToken.balanceOf(_minter);
+contract Buying is CreatorTokenTest {
+  function test_SecondTokenIsBoughtForOnePaymentToken(address _buyer) public {
+    vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
+    uint256 originalBuyerBalance = creatorToken.balanceOf(_buyer);
 
-    deal(address(payToken), _minter, BASE_PAY_AMOUNT);
+    deal(address(payToken), _buyer, BASE_PAY_AMOUNT);
 
-    vm.startPrank(_minter);
+    vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
-    creatorToken.payAndMint(BASE_PAY_AMOUNT);
+    creatorToken.buy(BASE_PAY_AMOUNT);
     vm.stopPrank();
 
-    assertEq(creatorToken.balanceOf(_minter), originalMinterBalance + 1);
-    assertEq(payToken.balanceOf(_minter), 0);
+    assertEq(creatorToken.balanceOf(_buyer), originalBuyerBalance + 1);
+    assertEq(payToken.balanceOf(_buyer), 0);
     assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
   }
 
-  function test_PayAndMintWithMintToAddress(address _minter, address _mintTo) public {
-    vm.assume(_minter != address(0) && _minter != address(creatorToken));
-    vm.assume(_mintTo != address(0) && _mintTo != address(creatorToken));
-    uint256 originalMinterBalance = creatorToken.balanceOf(_mintTo);
+  function test_PayAndBuyWithReceiverAddress(address _buyer, address _to) public {
+    vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
+    vm.assume(_to != address(0) && _to != address(creatorToken));
+    uint256 originalReceiverBalance = creatorToken.balanceOf(_to);
 
-    deal(address(payToken), _minter, BASE_PAY_AMOUNT);
+    deal(address(payToken), _buyer, BASE_PAY_AMOUNT);
 
-    vm.startPrank(_minter);
+    vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
-    creatorToken.payAndMint(_mintTo, BASE_PAY_AMOUNT);
+    creatorToken.buy(_to, BASE_PAY_AMOUNT);
     vm.stopPrank();
 
-    assertEq(creatorToken.balanceOf(_mintTo), originalMinterBalance + 1);
-    assertEq(payToken.balanceOf(_minter), 0);
+    assertEq(creatorToken.balanceOf(_to), originalReceiverBalance + 1);
+    assertEq(payToken.balanceOf(_buyer), 0);
     assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
   }
 
-  function test_EmitsMintedEvent(address _minter) public {
-    vm.assume(_minter != address(0) && _minter != address(creatorToken));
-    deal(address(payToken), _minter, BASE_PAY_AMOUNT);
+  function test_EmitsBoughtEvent(address _buyer) public {
+    vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
+    deal(address(payToken), _buyer, BASE_PAY_AMOUNT);
 
-    vm.startPrank(_minter);
+    vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
     vm.expectEmit(true, true, true, true);
-    emit Minted(_minter, creatorToken.lastId() + 1, BASE_PAY_AMOUNT);
-    creatorToken.payAndMint(BASE_PAY_AMOUNT);
+    emit Bought(_buyer, _buyer, creatorToken.lastId() + 1, BASE_PAY_AMOUNT);
+    creatorToken.buy(BASE_PAY_AMOUNT);
     vm.stopPrank();
   }
 
-  function test_RevertIf_MintPriceExceedsMaxPayment(uint256 _maxPayment) public {
+  function test_RevertIf_PriceExceedsMaxPayment(uint256 _maxPayment) public {
     vm.assume(_maxPayment < BASE_PAY_AMOUNT);
     vm.expectRevert(
       abi.encodeWithSelector(
         CreatorToken.CreatorToken__MaxPaymentExceeded.selector, BASE_PAY_AMOUNT, _maxPayment
       )
     );
-    creatorToken.payAndMint(_maxPayment);
+    creatorToken.buy(_maxPayment);
   }
 }
