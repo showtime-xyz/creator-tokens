@@ -10,10 +10,9 @@ contract CreatorToken is ERC721 {
 
   error CreatorToken__MaxPaymentExceeded(uint256 _mintPrice, uint256 _maxPayment);
 
+  uint256 public lastId;
   address public creator;
   IERC20 public payToken;
-
-  uint256 private lastId;
 
   event Minted(address indexed _to, uint256 indexed _tokenId, uint256 _paymentAmount);
 
