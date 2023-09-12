@@ -26,18 +26,16 @@ contract CreatorToken is ERC721 {
   }
 
   function payAndMint(uint256 _maxPayment) public {
-    uint256 _mintPrice = _temporaryGetNextTokenPrice();
-    if (_mintPrice > _maxPayment) revert CreatorToken__MaxPaymentExceeded(_mintPrice, _maxPayment);
-    _mintAndTransfer(msg.sender, _mintPrice);
+    _payAndMint(msg.sender, _maxPayment);
   }
 
   function payAndMint(address _mintTo, uint256 _maxPayment) public {
-    uint256 _mintPrice = _temporaryGetNextTokenPrice();
-    if (_mintPrice > _maxPayment) revert CreatorToken__MaxPaymentExceeded(_mintPrice, _maxPayment);
-    _mintAndTransfer(_mintTo, _mintPrice);
+    _payAndMint(_mintTo, _maxPayment);
   }
 
-  function _mintAndTransfer(address _mintTo, uint256 _mintPrice) internal {
+  function _payAndMint(address _mintTo, uint256 _maxPayment) internal {
+    uint256 _mintPrice = _temporaryGetNextTokenPrice();
+    if (_mintPrice > _maxPayment) revert CreatorToken__MaxPaymentExceeded(_mintPrice, _maxPayment);
     _mintAndIncrement(_mintTo);
     emit Minted(_mintTo, lastId, _mintPrice);
     payToken.safeTransferFrom(msg.sender, address(this), _mintPrice);
