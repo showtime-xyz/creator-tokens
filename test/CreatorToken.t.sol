@@ -18,7 +18,10 @@ contract CreatorTokenTest is Test {
   uint256 BASE_PAY_AMOUNT = 1e18; // Because our test token has 18 decimals
 
   event Bought(
-    address indexed _buyer, address indexed _to, uint256 indexed _tokenId, uint256 _paymentAmount
+    address indexed _payer,
+    address indexed _receiver,
+    uint256 indexed _tokenId,
+    uint256 _paymentAmount
   );
 
   function setUp() public {
