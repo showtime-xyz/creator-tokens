@@ -42,7 +42,7 @@ contract CreatorToken is ERC721 {
     address _creator,
     address _admin,
     IERC20 _payToken
-  ) ERC721(_name, _symbol) {
+  ) ERC721(_name, _symbol) isNotAddressZero(_creator) isNotAddressZero(_admin) {
     creator = _creator;
     admin = _admin;
     payToken = _payToken;
