@@ -49,6 +49,22 @@ contract Deployment is CreatorTokenTest {
     assertEq(address(creatorToken.payToken()), address(payToken));
   }
 
+  function test_RevertIf_TokenIsConfiguredWithZeroAddressAsCreator() public {
+    CreatorToken creatorTokenInstance;
+    address creatorZero = address(0);
+    vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
+    creatorTokenInstance =
+      new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creatorZero, admin, payToken);
+  }
+
+  function test_RevertIf_TokenIsConfiguredWithZeroAddressAsAdmin() public {
+    CreatorToken creatorTokenInstance;
+    address adminZero = address(0);
+    vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
+    creatorTokenInstance =
+      new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, adminZero, payToken);
+  }
+
   function test_FirstTokenIsMintedToCreator() public {
     assertEq(creatorToken.balanceOf(creator), 1);
     assertEq(creatorToken.ownerOf(1), creator);
@@ -140,13 +156,17 @@ contract Buying is CreatorTokenTest {
 }
 
 contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
-  function test_UpdateCreatorAddress(address _newCreator) public {
+  function test_UpdateCreatorAddress(address _newCreator, address _secondNewCreator) public {
     vm.assume(_newCreator != address(0) && _newCreator != creator);
+    vm.assume(_secondNewCreator != address(0) && _secondNewCreator != _newCreator);
 
     vm.prank(creator);
     creatorToken.updateCreator(_newCreator);
-
     assertEq(creatorToken.creator(), _newCreator);
+
+    vm.prank(_newCreator);
+    creatorToken.updateCreator(_secondNewCreator);
+    assertEq(creatorToken.creator(), _secondNewCreator);
   }
 
   function test_RevertIf_NewCreatorAddressIsZero() public {
@@ -170,13 +190,17 @@ contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
     creatorToken.updateCreator(_newCreator);
   }
 
-  function test_UpdateAdminAddress(address _newAdmin) public {
+  function test_UpdateAdminAddress(address _newAdmin, address _secondNewAdmin) public {
     vm.assume(_newAdmin != address(0) && _newAdmin != admin);
+    vm.assume(_secondNewAdmin != address(0) && _secondNewAdmin != _newAdmin);
 
     vm.prank(admin);
     creatorToken.updateAdmin(_newAdmin);
-
     assertEq(creatorToken.admin(), _newAdmin);
+
+    vm.prank(_newAdmin);
+    creatorToken.updateAdmin(_secondNewAdmin);
+    assertEq(creatorToken.admin(), _secondNewAdmin);
   }
 
   function test_RevertIf_NewAdminAddressIsZero() public {
