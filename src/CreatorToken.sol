@@ -12,19 +12,31 @@ contract CreatorToken is ERC721 {
 
   uint256 public lastId;
   address public creator;
+  address public admin;
   IERC20 public payToken;
+
+  uint256 constant BIP = 10_000;
+  uint256 public constant CREATOR_FEE_BIPS = 700; // 7% in 4 decimals
+  uint256 public constant ADMIN_FEE_BIPS = 300; // 3% in 4 decimals
 
   event Bought(
     address indexed _payer,
     address indexed _receiver,
     uint256 indexed _tokenId,
-    uint256 _paymentAmount
+    uint256 _paymentAmount,
+    uint256 _creatorFee,
+    uint256 _adminFee
   );
 
-  constructor(string memory _name, string memory _symbol, address _creator, IERC20 _payToken)
-    ERC721(_name, _symbol)
-  {
+  constructor(
+    string memory _name,
+    string memory _symbol,
+    address _creator,
+    address _admin,
+    IERC20 _payToken
+  ) ERC721(_name, _symbol) {
     creator = _creator;
+    admin = _admin;
     payToken = _payToken;
     _mintAndIncrement(_creator);
   }
@@ -38,11 +50,27 @@ contract CreatorToken is ERC721 {
   }
 
   function _buy(address _to, uint256 _maxPayment) internal {
-    uint256 _price = _temporaryGetNextTokenPrice();
-    if (_price > _maxPayment) revert CreatorToken__MaxPaymentExceeded(_price, _maxPayment);
+    uint256 _tokenPrice = _temporaryGetNextTokenPrice();
+    (uint256 _creatorFee, uint256 _adminFee) = calculateFees(_tokenPrice);
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+
+    if (_totalPrice > _maxPayment) {
+      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
+    }
     _mintAndIncrement(_to);
-    emit Bought(msg.sender, _to, lastId, _price);
-    payToken.safeTransferFrom(msg.sender, address(this), _price);
+    emit Bought(msg.sender, _to, lastId, _tokenPrice, _creatorFee, _adminFee);
+    payToken.safeTransferFrom(msg.sender, address(this), _tokenPrice);
+    payToken.safeTransferFrom(msg.sender, creator, _creatorFee);
+    payToken.safeTransferFrom(msg.sender, admin, _adminFee);
+  }
+
+  function calculateFees(uint256 _price)
+    public
+    pure
+    returns (uint256 _creatorFee, uint256 _adminFee)
+  {
+    _creatorFee = (_price * CREATOR_FEE_BIPS) / BIP;
+    _adminFee = (_price * ADMIN_FEE_BIPS) / BIP;
   }
 
   // Placeholder function for an eventual bonding curve function and/or contract
