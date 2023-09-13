@@ -57,7 +57,10 @@ contract Deployment is CreatorTokenTest {
 
 contract Buying is CreatorTokenTest {
   function test_SecondTokenIsBoughtForOnePaymentToken(address _buyer) public {
-    vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
+    vm.assume(
+      _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
+        && _buyer != admin
+    );
     uint256 originalBuyerBalance = creatorToken.balanceOf(_buyer);
 
     (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
@@ -77,7 +80,10 @@ contract Buying is CreatorTokenTest {
   }
 
   function test_BuyWithReceiverAddress(address _buyer, address _to) public {
-    vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
+    vm.assume(
+      _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
+        && _buyer != admin
+    );
     vm.assume(_to != address(0) && _to != address(creatorToken));
     uint256 originalReceiverBalance = creatorToken.balanceOf(_to);
 
