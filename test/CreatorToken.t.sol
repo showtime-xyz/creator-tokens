@@ -138,3 +138,63 @@ contract Buying is CreatorTokenTest {
     vm.stopPrank();
   }
 }
+
+contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
+  function test_UpdateCreatorAddress(address _newCreator) public {
+    vm.assume(_newCreator != address(0) && _newCreator != creator);
+
+    vm.prank(creator);
+    creatorToken.updateCreator(_newCreator);
+
+    assertEq(creatorToken.creator(), _newCreator);
+  }
+
+  function test_RevertIf_NewCreatorAddressIsZero() public {
+    address _newCreator = address(0);
+
+    vm.prank(creator);
+    vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
+    creatorToken.updateCreator(_newCreator);
+  }
+
+  function test_RevertIf_CallerIsNotCreator(address _caller, address _newCreator) public {
+    vm.assume(_caller != address(0) && _caller != creator);
+    vm.assume(_newCreator != address(0));
+
+    vm.prank(_caller);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__CallerIsNotCreator.selector, creator, _caller
+      )
+    );
+    creatorToken.updateCreator(_newCreator);
+  }
+
+  function test_UpdateAdminAddress(address _newAdmin) public {
+    vm.assume(_newAdmin != address(0) && _newAdmin != admin);
+
+    vm.prank(admin);
+    creatorToken.updateAdmin(_newAdmin);
+
+    assertEq(creatorToken.admin(), _newAdmin);
+  }
+
+  function test_RevertIf_NewAdminAddressIsZero() public {
+    address _newAdmin = address(0);
+
+    vm.prank(admin);
+    vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
+    creatorToken.updateAdmin(_newAdmin);
+  }
+
+  function test_RevertIf_CallerIsNotAdmin(address _caller, address _newAdmin) public {
+    vm.assume(_caller != address(0) && _caller != creator);
+    vm.assume(_newAdmin != address(0));
+
+    vm.prank(_caller);
+    vm.expectRevert(
+      abi.encodeWithSelector(CreatorToken.CreatorToken__CallerIsNotAdmin.selector, admin, _caller)
+    );
+    creatorToken.updateAdmin(_newAdmin);
+  }
+}
