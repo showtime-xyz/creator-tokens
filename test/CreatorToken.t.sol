@@ -188,7 +188,7 @@ contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
   }
 
   function test_RevertIf_CallerIsNotAdmin(address _caller, address _newAdmin) public {
-    vm.assume(_caller != address(0) && _caller != creator);
+    vm.assume(_caller != address(0) && _caller != admin);
     vm.assume(_newAdmin != address(0));
 
     vm.prank(_caller);
