@@ -15,7 +15,10 @@ contract CreatorToken is ERC721 {
   IERC20 public payToken;
 
   event Bought(
-    address indexed _buyer, address indexed _to, uint256 indexed _tokenId, uint256 _paymentAmount
+    address indexed _payer,
+    address indexed _receiver,
+    uint256 indexed _tokenId,
+    uint256 _paymentAmount
   );
 
   constructor(string memory _name, string memory _symbol, address _creator, IERC20 _payToken)
