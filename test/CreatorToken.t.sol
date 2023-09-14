@@ -26,6 +26,7 @@ contract CreatorTokenTest is Test {
     uint256 _creatorFee,
     uint256 _adminFee
   );
+  event ToggledPause(bool _oldPauseState, bool _newPauseState, address _caller);
 
   function setUp() public {
     payToken = new ERC20(PAY_TOKEN_NAME, PAY_TOKEN_SYMBOL);
@@ -220,5 +221,97 @@ contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
       abi.encodeWithSelector(CreatorToken.CreatorToken__CallerIsNotAdmin.selector, admin, _caller)
     );
     creatorToken.updateAdmin(_newAdmin);
+  }
+}
+
+contract Pausing is CreatorTokenTest {
+  function test_PauseContractCreator() public {
+    vm.startPrank(creator);
+
+    // Pause
+    vm.expectEmit(true, true, true, true);
+    emit ToggledPause(false, true, creator);
+    creatorToken.pause(true);
+    assertEq(creatorToken.paused(), true);
+
+    // Unpause
+    vm.expectEmit(true, true, true, true);
+    emit ToggledPause(true, false, creator);
+    creatorToken.pause(false);
+    assertEq(creatorToken.paused(), false);
+
+    vm.stopPrank();
+  }
+
+  function test_PauseContractAdmin() public {
+    vm.startPrank(admin);
+
+    // Pause
+    vm.expectEmit(true, true, true, true);
+    emit ToggledPause(false, true, admin);
+    creatorToken.pause(true);
+    assertEq(creatorToken.paused(), true);
+
+    // Unpause
+    vm.expectEmit(true, true, true, true);
+    emit ToggledPause(true, false, admin);
+    creatorToken.pause(false);
+    assertEq(creatorToken.paused(), false);
+
+    vm.stopPrank();
+  }
+
+  function test_RevertIf_CallerIsNotCreatorOrAdmin(address _caller, bool _pauseState) public {
+    vm.assume(_caller != address(0) && _caller != creator && _caller != admin);
+
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__CallerIsNotCreatorOrAdmin.selector, creator, admin, _caller
+      )
+    );
+    vm.prank(_caller);
+    creatorToken.pause(_pauseState);
+  }
+
+  function test_RevertIf_PausedAndBuyIsCalled(address _buyer) public {
+    vm.prank(creator);
+    creatorToken.pause(true);
+    assertEq(creatorToken.paused(), true);
+
+    vm.assume(
+      _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
+        && _buyer != admin
+    );
+
+    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
+    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    deal(address(payToken), _buyer, _totalPrice);
+
+    vm.startPrank(_buyer);
+    payToken.approve(address(creatorToken), type(uint256).max);
+    vm.expectRevert("Pausable: paused");
+    creatorToken.buy(_totalPrice);
+    vm.stopPrank();
+  }
+
+  function test_RevertIf_PausedAndBuyIsCalled(address _buyer, address _receiver) public {
+    vm.prank(creator);
+    creatorToken.pause(true);
+    assertEq(creatorToken.paused(), true);
+
+    vm.assume(
+      _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
+        && _buyer != admin
+    );
+
+    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
+    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    deal(address(payToken), _buyer, _totalPrice);
+
+    vm.startPrank(_buyer);
+    payToken.approve(address(creatorToken), type(uint256).max);
+    vm.expectRevert("Pausable: paused");
+    creatorToken.buy(_receiver, _totalPrice);
+    vm.stopPrank();
   }
 }
