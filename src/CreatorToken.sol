@@ -4,13 +4,15 @@ pragma solidity 0.8.20;
 import {ERC721} from "openzeppelin/token/ERC721/ERC721.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {Pausable} from "openzeppelin/security/Pausable.sol";
 
-contract CreatorToken is ERC721 {
+contract CreatorToken is ERC721, Pausable {
   using SafeERC20 for IERC20;
 
   error CreatorToken__MaxPaymentExceeded(uint256 _price, uint256 _maxPayment);
   error CreatorToken__CallerIsNotCreator(address _creator, address _caller);
   error CreatorToken__CallerIsNotAdmin(address _admin, address _caller);
+  error CreatorToken__CallerIsNotCreatorOrAdmin(address _creator, address _admin, address _caller);
   error CreatorToken__AddressZeroNotAllowed();
 
   uint256 public lastId;
@@ -30,9 +32,17 @@ contract CreatorToken is ERC721 {
     uint256 _creatorFee,
     uint256 _adminFee
   );
+  event ToggledPause(bool _oldPauseState, bool _newPauseState, address _caller);
 
   modifier isNotAddressZero(address _address) {
     if (_address == address(0)) revert CreatorToken__AddressZeroNotAllowed();
+    _;
+  }
+
+  modifier onlyCreatorOrAdmin(address _caller) {
+    if (_caller != creator && _caller != admin) {
+      revert CreatorToken__CallerIsNotCreatorOrAdmin(creator, admin, _caller);
+    }
     _;
   }
 
@@ -67,7 +77,7 @@ contract CreatorToken is ERC721 {
     admin = _newAdmin;
   }
 
-  function _buy(address _to, uint256 _maxPayment) internal {
+  function _buy(address _to, uint256 _maxPayment) internal whenNotPaused {
     uint256 _tokenPrice = _temporaryGetNextTokenPrice();
     (uint256 _creatorFee, uint256 _adminFee) = calculateFees(_tokenPrice);
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
@@ -80,6 +90,12 @@ contract CreatorToken is ERC721 {
     payToken.safeTransferFrom(msg.sender, address(this), _tokenPrice);
     payToken.safeTransferFrom(msg.sender, creator, _creatorFee);
     payToken.safeTransferFrom(msg.sender, admin, _adminFee);
+  }
+
+  function pause(bool _pauseState) public onlyCreatorOrAdmin(msg.sender) {
+    if (_pauseState) _pause();
+    else _unpause();
+    emit ToggledPause(!paused(), _pauseState, msg.sender);
   }
 
   function calculateFees(uint256 _price)
