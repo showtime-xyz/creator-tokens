@@ -14,6 +14,7 @@ contract CreatorToken is ERC721 {
   error CreatorToken__ContractIsPaused();
 
   uint256 public lastId;
+  uint256 public circulatingSupply;
   address public creator;
   address public admin;
   bool public isPaused;
@@ -28,6 +29,13 @@ contract CreatorToken is ERC721 {
     address indexed _receiver,
     uint256 indexed _tokenId,
     uint256 _paymentAmount,
+    uint256 _creatorFee,
+    uint256 _adminFee
+  );
+  event Sold(
+    address indexed _seller,
+    uint256 indexed _tokenId,
+    uint256 _salePrice,
     uint256 _creatorFee,
     uint256 _adminFee
   );
@@ -71,6 +79,14 @@ contract CreatorToken is ERC721 {
     _buy(_to, _maxPayment);
   }
 
+  function sell(uint256 _tokenId) public {
+    _sell(_tokenId, 0);
+  }
+
+  function sell(uint256 _tokenId, uint256 _minAcceptedPrice) public {
+    _sell(_tokenId, _minAcceptedPrice);
+  }
+
   function updateCreator(address _newCreator) public isNotAddressZero(_newCreator) {
     if (msg.sender != creator) revert CreatorToken__Unauthorized("not creator", msg.sender);
     creator = _newCreator;
@@ -96,6 +112,29 @@ contract CreatorToken is ERC721 {
     payToken.safeTransferFrom(msg.sender, admin, _adminFee);
   }
 
+  function _sell(uint256 _tokenId, uint256 _minAcceptedPrice) internal whenNotPaused {
+    if (msg.sender != ownerOf(_tokenId)) {
+      revert CreatorToken__CallerIsNotOwner(_tokenId, ownerOf(_tokenId), msg.sender);
+    }
+    if (circulatingSupply == 1) revert CreatorToken__LastTokenCannotBeSold(circulatingSupply);
+
+    uint256 _tokenPrice = _temporaryGetNextTokenPrice();
+    (uint256 _creatorFee, uint256 _adminFee) = calculateFees(_tokenPrice);
+    uint256 _totalPrice = _tokenPrice - _creatorFee - _adminFee;
+
+    if (_totalPrice < _minAcceptedPrice) {
+      revert CreatorToken__MinAcceptedPriceExceeded(_totalPrice, _minAcceptedPrice);
+    }
+
+    transferFrom(msg.sender, address(this), _tokenId);
+    _burn(_tokenId);
+    emit Sold(msg.sender, _tokenId, _tokenPrice, _creatorFee, _adminFee);
+
+    payToken.transfer(creator, _creatorFee);
+    payToken.transfer(msg.sender, _totalPrice);
+    payToken.transfer(admin, _adminFee);
+  }
+
   function pause(bool _pauseState) public onlyCreatorOrAdmin(msg.sender) {
     emit ToggledPause(isPaused, _pauseState, msg.sender);
     isPaused = _pauseState;
@@ -118,5 +157,6 @@ contract CreatorToken is ERC721 {
   function _mintAndIncrement(address _to) private {
     lastId += 1;
     _mint(_to, lastId);
+    circulatingSupply += 1;
   }
 }

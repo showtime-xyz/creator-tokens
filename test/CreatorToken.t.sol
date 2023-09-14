@@ -26,6 +26,13 @@ contract CreatorTokenTest is Test {
     uint256 _creatorFee,
     uint256 _adminFee
   );
+  event Sold(
+    address indexed _seller,
+    uint256 indexed _tokenId,
+    uint256 _salePrice,
+    uint256 _creatorFee,
+    uint256 _adminFee
+  );
   event ToggledPause(bool _oldPauseState, bool _newPauseState, address _caller);
 
   function setUp() public {
@@ -152,6 +159,117 @@ contract Buying is CreatorTokenTest {
       )
     );
     creatorToken.buy(_maxPayment);
+    vm.stopPrank();
+  }
+}
+
+contract Selling is CreatorTokenTest {
+  function buyAToken(address _buyer) public {
+    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
+    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    deal(address(payToken), _buyer, _totalPrice);
+
+    vm.startPrank(_buyer);
+
+    payToken.approve(address(creatorToken), type(uint256).max);
+    creatorToken.buy(_totalPrice);
+    assertEq(creatorToken.balanceOf(_buyer), 1);
+    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _buyer);
+    assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
+    vm.stopPrank();
+  }
+
+  function test_SecondTokenIsSoldForOnePaymentToken(address _seller) public {
+    vm.assume(
+      _seller != address(0) && _seller != address(creatorToken) && _seller != creator
+        && _seller != admin
+    );
+    buyAToken(_seller);
+    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _seller);
+    assertEq(payToken.balanceOf(_seller), 0);
+
+    uint256 creatorOriginalBalance = payToken.balanceOf(creatorToken.creator());
+    uint256 adminOriginalBalance = payToken.balanceOf(creatorToken.admin());
+    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
+    uint256 _totalPrice = BASE_PAY_AMOUNT - _creatorFee - _adminFee;
+
+    vm.startPrank(_seller);
+    creatorToken.approve(address(creatorToken), creatorToken.lastId());
+    vm.expectEmit(true, true, true, true);
+    emit Sold(_seller, creatorToken.lastId(), BASE_PAY_AMOUNT, _creatorFee, _adminFee);
+    creatorToken.sell(creatorToken.lastId(), _totalPrice);
+    vm.stopPrank();
+
+    assertEq(creatorToken.balanceOf(_seller), 0);
+    assertEq(payToken.balanceOf(_seller), _totalPrice);
+    assertEq(payToken.balanceOf(creatorToken.creator()), creatorOriginalBalance + _creatorFee);
+    assertEq(payToken.balanceOf(creatorToken.admin()), adminOriginalBalance + _adminFee);
+  }
+
+  function test_RevertIf_MinAcceptedPriceIsHigherThanTotalPrice(
+    address _seller,
+    uint256 _minAcceptedPrice
+  ) public {
+    vm.assume(
+      _seller != address(0) && _seller != address(creatorToken) && _seller != creator
+        && _seller != admin
+    );
+    buyAToken(_seller);
+    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _seller);
+    assertEq(payToken.balanceOf(_seller), 0);
+
+    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
+    uint256 _totalPrice = BASE_PAY_AMOUNT - _creatorFee - _adminFee;
+    vm.assume(_minAcceptedPrice > _totalPrice);
+
+    vm.startPrank(_seller);
+    uint256 tokenId = creatorToken.lastId();
+    creatorToken.approve(address(creatorToken), creatorToken.lastId());
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__MinAcceptedPriceExceeded.selector, _totalPrice, _minAcceptedPrice
+      )
+    );
+    creatorToken.sell(tokenId, _minAcceptedPrice);
+    vm.stopPrank();
+  }
+
+  function test_RevertIf_SellerIsNotTokenOwner(address _owner, address _seller) public {
+    vm.assume(
+      _owner != address(0) && _owner != address(creatorToken) && _owner != creator
+        && _owner != admin && _owner != _seller
+    );
+    vm.assume(
+      _seller != address(0) && _seller != address(creatorToken) && _seller != creator
+        && _seller != admin
+    );
+    buyAToken(_owner);
+    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _owner);
+    assertEq(payToken.balanceOf(_owner), 0);
+
+    vm.startPrank(_seller);
+    uint256 tokenId = creatorToken.lastId();
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__CallerIsNotOwner.selector, creatorToken.lastId(), _owner, _seller
+      )
+    );
+    creatorToken.sell(tokenId);
+    vm.stopPrank();
+  }
+
+  function test_RevertIf_LastTokenIsBeingSold() public {
+    assertEq(creatorToken.ownerOf(creatorToken.lastId()), creator);
+
+    vm.startPrank(creator);
+    uint256 tokenId = creatorToken.lastId();
+    creatorToken.approve(address(creatorToken), tokenId);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__LastTokenCannotBeSold.selector, creatorToken.circulatingSupply()
+      )
+    );
+    creatorToken.sell(tokenId);
     vm.stopPrank();
   }
 }
@@ -314,6 +432,38 @@ contract Pausing is CreatorTokenTest {
     payToken.approve(address(creatorToken), type(uint256).max);
     vm.expectRevert(CreatorToken.CreatorToken__ContractIsPaused.selector);
     creatorToken.buy(_receiver, _totalPrice);
+    vm.stopPrank();
+  }
+
+  function test_RevertIf_PausedAndSellIsCalled(address _seller) public {
+    vm.assume(
+      _seller != address(0) && _seller != address(creatorToken) && _seller != creator
+        && _seller != admin
+    );
+
+    // Buy a token
+    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
+    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    deal(address(payToken), _seller, _totalPrice);
+
+    vm.startPrank(_seller);
+    payToken.approve(address(creatorToken), type(uint256).max);
+    creatorToken.buy(_totalPrice);
+    assertEq(creatorToken.balanceOf(_seller), 1);
+    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _seller);
+    assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
+    vm.stopPrank();
+
+    // Pause
+    vm.prank(creator);
+    creatorToken.pause(true);
+
+    // Try to sell the token
+    vm.startPrank(_seller);
+    creatorToken.approve(address(creatorToken), creatorToken.lastId());
+    uint256 tokenId = creatorToken.lastId();
+    vm.expectRevert("Pausable: paused");
+    creatorToken.sell(tokenId, _totalPrice);
     vm.stopPrank();
   }
 }
