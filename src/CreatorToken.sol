@@ -130,9 +130,9 @@ contract CreatorToken is ERC721 {
     _burn(_tokenId);
     emit Sold(msg.sender, _tokenId, _tokenPrice, _creatorFee, _adminFee);
 
-    payToken.transfer(creator, _creatorFee);
-    payToken.transfer(msg.sender, _totalPrice);
-    payToken.transfer(admin, _adminFee);
+    payToken.safeTransfer(creator, _creatorFee);
+    payToken.safeTransfer(msg.sender, _totalPrice);
+    payToken.safeTransfer(admin, _adminFee);
   }
 
   function pause(bool _pauseState) public onlyCreatorOrAdmin(msg.sender) {
