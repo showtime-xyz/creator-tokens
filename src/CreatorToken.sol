@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 import {ERC721} from "openzeppelin/token/ERC721/ERC721.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {IBondingCurve} from "src/interfaces/IBondingCurve.sol";
 
 contract CreatorToken is ERC721 {
   using SafeERC20 for IERC20;
@@ -22,6 +23,7 @@ contract CreatorToken is ERC721 {
   address public admin;
   bool public isPaused;
   IERC20 public payToken;
+  IBondingCurve public bondingCurve;
 
   uint256 constant BIP = 10_000;
   uint256 public constant CREATOR_FEE_BIPS = 700; // 7% in 4 decimals
@@ -66,11 +68,13 @@ contract CreatorToken is ERC721 {
     string memory _symbol,
     address _creator,
     address _admin,
-    IERC20 _payToken
+    IERC20 _payToken,
+    IBondingCurve _bondingCurve
   ) ERC721(_name, _symbol) isNotAddressZero(_creator) isNotAddressZero(_admin) {
     creator = _creator;
     admin = _admin;
     payToken = _payToken;
+    bondingCurve = _bondingCurve;
     _mintAndIncrement(_creator);
   }
 
