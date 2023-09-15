@@ -105,8 +105,7 @@ contract CreatorToken is ERC721 {
   }
 
   function _buy(address _to, uint256 _maxPayment) internal whenNotPaused {
-    uint256 _tokenPrice = _temporaryGetNextTokenPrice();
-    (uint256 _creatorFee, uint256 _adminFee) = calculateFees(_tokenPrice);
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextBuyPrice();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
 
     if (_totalPrice > _maxPayment) {
@@ -125,8 +124,7 @@ contract CreatorToken is ERC721 {
     }
     if (totalSupply == 1) revert CreatorToken__LastTokenCannotBeSold(totalSupply);
 
-    uint256 _tokenPrice = _temporaryGetNextTokenPrice();
-    (uint256 _creatorFee, uint256 _adminFee) = calculateFees(_tokenPrice);
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextSellPrice();
     uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
 
     if (_netProceeds < _minAcceptedPrice) {
@@ -147,6 +145,16 @@ contract CreatorToken is ERC721 {
     isPaused = _pauseState;
   }
 
+  function nextBuyPrice() public view returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) {
+    _tokenPrice = bondingCurve.priceForTokenNumber(totalSupply + 1);
+    (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
+  }
+
+  function nextSellPrice() public view returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) {
+    _tokenPrice = bondingCurve.priceForTokenNumber(totalSupply);
+    (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
+  }
+
   function calculateFees(uint256 _price)
     public
     pure
@@ -154,11 +162,6 @@ contract CreatorToken is ERC721 {
   {
     _creatorFee = (_price * CREATOR_FEE_BIPS) / BIP;
     _adminFee = (_price * ADMIN_FEE_BIPS) / BIP;
-  }
-
-  // Placeholder function for an eventual bonding curve function and/or contract
-  function _temporaryGetNextTokenPrice() public pure returns (uint256) {
-    return 1e18;
   }
 
   function _mintAndIncrement(address _to) private {

@@ -11,6 +11,6 @@ contract MockIncrementingBondingCurve is IBondingCurve {
   }
 
   function priceForTokenNumber(uint256 _tokenNumber) external view returns (uint256 _price) {
-    _price = _tokenNumber * basePrice;
+    _price = (_tokenNumber - 1) * basePrice;
   }
 }
