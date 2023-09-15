@@ -91,8 +91,9 @@ contract Buying is CreatorTokenTest {
     );
     uint256 originalBuyerBalance = creatorToken.balanceOf(_buyer);
 
-    // TODO: 1. Update all buy/sell calls to use the new view methods
-    //       2. Write tests that make multiple purchases and assert the prices match what is returned base on the bonding curve
+    // TODO:
+    //       2. Write tests that make multiple purchases and assert the prices match what is
+    // returned base on the bonding curve
     /*
       Get price
       assert that token price is equal to what is returned from bondingCurve.priceForTokenNumber
@@ -111,7 +112,7 @@ contract Buying is CreatorTokenTest {
 
     assertEq(creatorToken.balanceOf(_buyer), originalBuyerBalance + 1);
     assertEq(payToken.balanceOf(_buyer), 0);
-    assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
+    assertEq(payToken.balanceOf(address(creatorToken)), _tokenPrice);
     assertEq(payToken.balanceOf(creatorToken.creator()), _creatorFee);
     assertEq(payToken.balanceOf(creatorToken.admin()), _adminFee);
   }
@@ -124,8 +125,8 @@ contract Buying is CreatorTokenTest {
     vm.assume(_to != address(0) && _to != address(creatorToken));
     uint256 originalReceiverBalance = creatorToken.balanceOf(_to);
 
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
     vm.startPrank(_buyer);
@@ -135,7 +136,7 @@ contract Buying is CreatorTokenTest {
 
     assertEq(creatorToken.balanceOf(_to), originalReceiverBalance + 1);
     assertEq(payToken.balanceOf(_buyer), 0);
-    assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
+    assertEq(payToken.balanceOf(address(creatorToken)), _tokenPrice);
     assertEq(payToken.balanceOf(creatorToken.creator()), _creatorFee);
     assertEq(payToken.balanceOf(creatorToken.admin()), _adminFee);
   }
@@ -143,14 +144,14 @@ contract Buying is CreatorTokenTest {
   function test_EmitsBoughtEvent(address _buyer) public {
     vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
 
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
     vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
     vm.expectEmit(true, true, true, true);
-    emit Bought(_buyer, _buyer, creatorToken.lastId() + 1, BASE_PAY_AMOUNT, _creatorFee, _adminFee);
+    emit Bought(_buyer, _buyer, creatorToken.lastId() + 1, _tokenPrice, _creatorFee, _adminFee);
     creatorToken.buy(_totalPrice);
     vm.stopPrank();
   }
@@ -158,8 +159,8 @@ contract Buying is CreatorTokenTest {
   function test_RevertIf_PriceExceedsMaxPayment(address _buyer, uint256 _maxPayment) public {
     vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
 
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     _maxPayment = bound(_maxPayment, 0, _totalPrice - 1);
     deal(address(payToken), _buyer, _totalPrice);
 
@@ -178,8 +179,8 @@ contract Buying is CreatorTokenTest {
 
 contract Selling is CreatorTokenTest {
   function buyAToken(address _buyer) public {
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
     vm.startPrank(_buyer);
@@ -188,7 +189,7 @@ contract Selling is CreatorTokenTest {
     creatorToken.buy(_totalPrice);
     assertEq(creatorToken.balanceOf(_buyer), 1);
     assertEq(creatorToken.ownerOf(creatorToken.lastId()), _buyer);
-    assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
+    assertEq(payToken.balanceOf(address(creatorToken)), _tokenPrice);
     vm.stopPrank();
   }
 
@@ -202,13 +203,13 @@ contract Selling is CreatorTokenTest {
     uint256 creatorOriginalBalance = payToken.balanceOf(creatorToken.creator());
     uint256 adminOriginalBalance = payToken.balanceOf(creatorToken.admin());
     uint256 originalTotalSupply = creatorToken.totalSupply();
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _netProceeds = BASE_PAY_AMOUNT - _creatorFee - _adminFee;
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+    uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
 
     vm.startPrank(_seller);
     creatorToken.approve(address(creatorToken), creatorToken.lastId());
     vm.expectEmit(true, true, true, true);
-    emit Sold(_seller, creatorToken.lastId(), BASE_PAY_AMOUNT, _creatorFee, _adminFee);
+    emit Sold(_seller, creatorToken.lastId(), _tokenPrice, _creatorFee, _adminFee);
     creatorToken.sell(creatorToken.lastId(), _netProceeds);
     vm.stopPrank();
 
@@ -231,8 +232,8 @@ contract Selling is CreatorTokenTest {
     assertEq(creatorToken.ownerOf(creatorToken.lastId()), _seller);
     assertEq(payToken.balanceOf(_seller), 0);
 
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _netProceeds = BASE_PAY_AMOUNT - _creatorFee - _adminFee;
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+    uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
     _minAcceptedPrice = bound(_minAcceptedPrice, _netProceeds + 1, type(uint256).max);
     uint256 tokenId = creatorToken.lastId();
 
@@ -420,8 +421,8 @@ contract Pausing is CreatorTokenTest {
         && _buyer != admin
     );
 
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
     vm.startPrank(_buyer);
@@ -441,8 +442,8 @@ contract Pausing is CreatorTokenTest {
         && _buyer != admin
     );
 
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
     vm.startPrank(_buyer);
@@ -459,8 +460,8 @@ contract Pausing is CreatorTokenTest {
     );
 
     // Buy a token
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _seller, _totalPrice);
 
     vm.startPrank(_seller);
@@ -468,7 +469,7 @@ contract Pausing is CreatorTokenTest {
     creatorToken.buy(_totalPrice);
     assertEq(creatorToken.balanceOf(_seller), 1);
     assertEq(creatorToken.ownerOf(creatorToken.lastId()), _seller);
-    assertEq(payToken.balanceOf(address(creatorToken)), BASE_PAY_AMOUNT);
+    assertEq(payToken.balanceOf(address(creatorToken)), _tokenPrice);
     vm.stopPrank();
 
     // Pause
