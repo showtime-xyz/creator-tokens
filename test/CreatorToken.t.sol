@@ -19,8 +19,8 @@ contract CreatorTokenTest is Test {
   string PAY_TOKEN_NAME = "Payment Token";
   string PAY_TOKEN_SYMBOL = "PAY";
   uint256 BASE_PAY_AMOUNT = 1e18; // Because our test token has 18 decimals
-  uint256 constant creatorFee = 700; // 7%
-  uint256 constant adminFee = 300; // 3%
+  uint256 constant CREATOR_FEE = 700; // 7%
+  uint256 constant ADMIN_FEE = 300; // 3%
 
   event Bought(
     address indexed _payer,
@@ -43,7 +43,7 @@ contract CreatorTokenTest is Test {
     payToken = new ERC20(PAY_TOKEN_NAME, PAY_TOKEN_SYMBOL);
     bondingCurve = new MockIncrementingBondingCurve(BASE_PAY_AMOUNT);
     creatorToken =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator,creatorFee, admin, adminFee, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, CREATOR_FEE, admin, ADMIN_FEE, payToken, bondingCurve);
   }
 
   function buyAToken(address _buyer) public {
@@ -104,9 +104,9 @@ contract Deployment is CreatorTokenTest {
     assertEq(creatorToken.name(), CREATOR_TOKEN_NAME);
     assertEq(creatorToken.symbol(), CREATOR_TOKEN_SYMBOL);
     assertEq(creatorToken.creator(), creator);
-    assertEq(creatorToken.CREATOR_FEE_BIPS(), creatorFee);
+    assertEq(creatorToken.CREATOR_FEE_BIPS(), CREATOR_FEE);
     assertEq(creatorToken.admin(), admin);
-    assertEq(creatorToken.ADMIN_FEE_BIPS(), adminFee);
+    assertEq(creatorToken.ADMIN_FEE_BIPS(), ADMIN_FEE);
     assertEq(address(creatorToken.payToken()), address(payToken));
     assertEq(address(creatorToken.BONDING_CURVE()), address(bondingCurve));
   }
@@ -116,7 +116,7 @@ contract Deployment is CreatorTokenTest {
     address _creatorZeroAddress = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     _creatorTokenInstance =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, _creatorZeroAddress, creatorFee, admin, adminFee, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, _creatorZeroAddress, CREATOR_FEE, admin, ADMIN_FEE, payToken, bondingCurve);
   }
 
   function test_RevertIf_TokenIsConfiguredWithZeroAddressAsAdmin() public {
@@ -124,7 +124,7 @@ contract Deployment is CreatorTokenTest {
     address _adminZeroAddress = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     _creatorTokenInstance =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, creatorFee, _adminZeroAddress, adminFee, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, CREATOR_FEE, _adminZeroAddress, ADMIN_FEE, payToken, bondingCurve);
   }
 
   function test_FirstTokenIsMintedToCreator() public {
