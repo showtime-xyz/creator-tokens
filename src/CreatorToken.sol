@@ -145,12 +145,20 @@ contract CreatorToken is ERC721 {
     isPaused = _pauseState;
   }
 
-  function nextBuyPrice() public view returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) {
+  function nextBuyPrice()
+    public
+    view
+    returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
+  {
     _tokenPrice = bondingCurve.priceForTokenNumber(totalSupply + 1);
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 
-  function nextSellPrice() public view returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) {
+  function nextSellPrice()
+    public
+    view
+    returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
+  {
     _tokenPrice = bondingCurve.priceForTokenNumber(totalSupply);
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }

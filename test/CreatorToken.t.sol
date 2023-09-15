@@ -49,6 +49,44 @@ contract CreatorTokenTest is Test {
     (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(_price);
     return _price + _creatorFee + _adminFee;
   }
+
+  function buyAToken(address _buyer) public {
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+    uint256 originalCreatorTokenBalance = payToken.balanceOf(address(creatorToken));
+    uint256 originalBuyerBalance = creatorToken.balanceOf(_buyer);
+    uint256 originalTotalSupply = creatorToken.totalSupply();
+    deal(address(payToken), _buyer, _totalPrice);
+
+    vm.startPrank(_buyer);
+    payToken.approve(address(creatorToken), type(uint256).max);
+    creatorToken.buy(_totalPrice);
+    vm.stopPrank();
+
+    assertEq(creatorToken.balanceOf(_buyer), originalBuyerBalance + 1);
+    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _buyer);
+    assertEq(payToken.balanceOf(address(creatorToken)), originalCreatorTokenBalance + _tokenPrice);
+    assertEq(creatorToken.totalSupply(), originalTotalSupply + 1);
+  }
+
+  function sellAToken(address _seller, uint256 _tokenId) public {
+    require(creatorToken.balanceOf(_seller) > 0, "seller does not own any tokens");
+    require(creatorToken.ownerOf(_tokenId) == _seller, "seller does not own the token");
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+    uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
+    uint256 originalCreatorTokenBalance = payToken.balanceOf(address(creatorToken));
+    uint256 originalSellerBalance = creatorToken.balanceOf(_seller);
+    uint256 originalTotalSupply = creatorToken.totalSupply();
+
+    vm.startPrank(_seller);
+    creatorToken.approve(address(creatorToken), _tokenId);
+    creatorToken.sell(_tokenId, _netProceeds);
+    vm.stopPrank();
+
+    assertEq(creatorToken.balanceOf(_seller), originalSellerBalance - 1);
+    assertEq(payToken.balanceOf(address(creatorToken)), originalCreatorTokenBalance - _tokenPrice);
+    assertEq(creatorToken.totalSupply(), originalTotalSupply - 1);
+  }
 }
 
 contract Deployment is CreatorTokenTest {
@@ -90,17 +128,6 @@ contract Buying is CreatorTokenTest {
         && _buyer != admin
     );
     uint256 originalBuyerBalance = creatorToken.balanceOf(_buyer);
-
-    // TODO:
-    //       2. Write tests that make multiple purchases and assert the prices match what is
-    // returned base on the bonding curve
-    /*
-      Get price
-      assert that token price is equal to what is returned from bondingCurve.priceForTokenNumber
-      Do another buy
-      repeat assertion
-      Etc... with sells + buys across several tests
-     */
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
@@ -178,21 +205,6 @@ contract Buying is CreatorTokenTest {
 }
 
 contract Selling is CreatorTokenTest {
-  function buyAToken(address _buyer) public {
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
-    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
-    deal(address(payToken), _buyer, _totalPrice);
-
-    vm.startPrank(_buyer);
-
-    payToken.approve(address(creatorToken), type(uint256).max);
-    creatorToken.buy(_totalPrice);
-    assertEq(creatorToken.balanceOf(_buyer), 1);
-    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _buyer);
-    assertEq(payToken.balanceOf(address(creatorToken)), _tokenPrice);
-    vm.stopPrank();
-  }
-
   function test_SecondTokenIsSoldForOnePaymentToken(address _seller) public {
     vm.assume(
       _seller != address(0) && _seller != address(creatorToken) && _seller != creator
@@ -483,5 +495,53 @@ contract Pausing is CreatorTokenTest {
     vm.expectRevert(CreatorToken.CreatorToken__ContractIsPaused.selector);
     creatorToken.sell(tokenId);
     vm.stopPrank();
+  }
+}
+
+contract bondingCurveTests is CreatorTokenTest {
+  function test_BuyPriceIsCorrect(address _buyer) public {
+    vm.assume(
+      _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
+        && _buyer != admin
+    );
+    uint256 buyNTokens = 5;
+
+    for (uint256 i = 0; i < buyNTokens; i++) {
+      uint256 originalBuyerBalance = creatorToken.balanceOf(_buyer);
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+      uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+      require(_tokenPrice == bondingCurve.priceForTokenNumber(creatorToken.totalSupply() + 1));
+      require(_totalPrice == calculateTotalPrice(_tokenPrice));
+
+      buyAToken(_buyer);
+      assertEq(creatorToken.balanceOf(_buyer), uint256(originalBuyerBalance + 1));
+    }
+    assertEq(creatorToken.balanceOf(_buyer), buyNTokens);
+  }
+
+  function test_SellPriceIsCorrect(address _seller) public {
+    vm.assume(
+      _seller != address(0) && _seller != address(creatorToken) && _seller != creator
+        && _seller != admin
+    );
+    uint256 nTokens = 5;
+    uint256[] memory tokenIds = new uint256[](nTokens);
+    // buy n tokens
+    for (uint256 i = 0; i < nTokens; i++) {
+      buyAToken(_seller);
+      tokenIds[i] = (creatorToken.lastId());
+    }
+    require(creatorToken.balanceOf(_seller) == nTokens);
+
+    // sell n tokens
+    for (uint256 i = 0; i < nTokens; i++) {
+      uint256 originalSellerBalance = creatorToken.balanceOf(_seller);
+      (uint256 _tokenPrice,,) = creatorToken.nextSellPrice();
+      require(_tokenPrice == bondingCurve.priceForTokenNumber(creatorToken.totalSupply()));
+
+      sellAToken(_seller, tokenIds[i]);
+      assertEq(creatorToken.balanceOf(_seller), uint256(originalSellerBalance - 1));
+    }
+    assertEq(creatorToken.balanceOf(_seller), 0);
   }
 }
