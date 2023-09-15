@@ -185,7 +185,7 @@ contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
     vm.prank(_caller);
     vm.expectRevert(
       abi.encodeWithSelector(
-        CreatorToken.CreatorToken__CallerIsNotCreator.selector, creator, _caller
+        CreatorToken.CreatorToken__Unauthorized.selector, bytes32("not creator"), _caller
       )
     );
     creatorToken.updateCreator(_newCreator);
@@ -218,7 +218,9 @@ contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
 
     vm.prank(_caller);
     vm.expectRevert(
-      abi.encodeWithSelector(CreatorToken.CreatorToken__CallerIsNotAdmin.selector, admin, _caller)
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__Unauthorized.selector, bytes32("not admin"), _caller
+      )
     );
     creatorToken.updateAdmin(_newAdmin);
   }
@@ -266,7 +268,7 @@ contract Pausing is CreatorTokenTest {
 
     vm.expectRevert(
       abi.encodeWithSelector(
-        CreatorToken.CreatorToken__CallerIsNotCreatorOrAdmin.selector, creator, admin, _caller
+        CreatorToken.CreatorToken__Unauthorized.selector, bytes32("not creator or admin"), _caller
       )
     );
     vm.prank(_caller);
@@ -289,7 +291,7 @@ contract Pausing is CreatorTokenTest {
 
     vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
-    vm.expectRevert("Pausable: paused");
+    vm.expectRevert(CreatorToken.CreatorToken__ContractIsPaused.selector);
     creatorToken.buy(_totalPrice);
     vm.stopPrank();
   }
@@ -310,7 +312,7 @@ contract Pausing is CreatorTokenTest {
 
     vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
-    vm.expectRevert("Pausable: paused");
+    vm.expectRevert(CreatorToken.CreatorToken__ContractIsPaused.selector);
     creatorToken.buy(_receiver, _totalPrice);
     vm.stopPrank();
   }

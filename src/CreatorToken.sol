@@ -6,18 +6,18 @@ import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {Pausable} from "openzeppelin/security/Pausable.sol";
 
-contract CreatorToken is ERC721, Pausable {
+contract CreatorToken is ERC721 {
   using SafeERC20 for IERC20;
 
   error CreatorToken__MaxPaymentExceeded(uint256 _price, uint256 _maxPayment);
-  error CreatorToken__CallerIsNotCreator(address _creator, address _caller);
-  error CreatorToken__CallerIsNotAdmin(address _admin, address _caller);
-  error CreatorToken__CallerIsNotCreatorOrAdmin(address _creator, address _admin, address _caller);
+  error CreatorToken__Unauthorized(bytes32 reason, address caller);
   error CreatorToken__AddressZeroNotAllowed();
+  error CreatorToken__ContractIsPaused();
 
   uint256 public lastId;
   address public creator;
   address public admin;
+  bool public paused;
   IERC20 public payToken;
 
   uint256 constant BIP = 10_000;
@@ -41,8 +41,13 @@ contract CreatorToken is ERC721, Pausable {
 
   modifier onlyCreatorOrAdmin(address _caller) {
     if (_caller != creator && _caller != admin) {
-      revert CreatorToken__CallerIsNotCreatorOrAdmin(creator, admin, _caller);
+      revert CreatorToken__Unauthorized("not creator or admin", _caller);
     }
+    _;
+  }
+
+  modifier whenNotPaused() {
+    if (paused) revert CreatorToken__ContractIsPaused();
     _;
   }
 
@@ -68,12 +73,12 @@ contract CreatorToken is ERC721, Pausable {
   }
 
   function updateCreator(address _newCreator) public isNotAddressZero(_newCreator) {
-    if (msg.sender != creator) revert CreatorToken__CallerIsNotCreator(creator, msg.sender);
+    if (msg.sender != creator) revert CreatorToken__Unauthorized("not creator", msg.sender);
     creator = _newCreator;
   }
 
   function updateAdmin(address _newAdmin) public isNotAddressZero(_newAdmin) {
-    if (msg.sender != admin) revert CreatorToken__CallerIsNotAdmin(admin, msg.sender);
+    if (msg.sender != admin) revert CreatorToken__Unauthorized("not admin", msg.sender);
     admin = _newAdmin;
   }
 
@@ -93,9 +98,8 @@ contract CreatorToken is ERC721, Pausable {
   }
 
   function pause(bool _pauseState) public onlyCreatorOrAdmin(msg.sender) {
-    if (_pauseState) _pause();
-    else _unpause();
-    emit ToggledPause(!paused(), _pauseState, msg.sender);
+    emit ToggledPause(paused, _pauseState, msg.sender);
+    paused = _pauseState;
   }
 
   function calculateFees(uint256 _price)
