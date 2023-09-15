@@ -11,10 +11,13 @@ contract CreatorToken is ERC721 {
   error CreatorToken__MaxPaymentExceeded(uint256 _price, uint256 _maxPayment);
   error CreatorToken__Unauthorized(bytes32 reason, address caller);
   error CreatorToken__AddressZeroNotAllowed();
+  error CreatorToken__CallerIsNotOwner(uint256 _tokenId, address _owner, address _caller);
+  error CreatorToken__MinAcceptedPriceExceeded(uint256 _price, uint256 _minAcceptedPrice);
+  error CreatorToken__LastTokenCannotBeSold(uint256 _circulatingSupply);
   error CreatorToken__ContractIsPaused();
 
   uint256 public lastId;
-  uint256 public circulatingSupply;
+  uint256 public totalSupply;
   address public creator;
   address public admin;
   bool public isPaused;
@@ -116,7 +119,7 @@ contract CreatorToken is ERC721 {
     if (msg.sender != ownerOf(_tokenId)) {
       revert CreatorToken__CallerIsNotOwner(_tokenId, ownerOf(_tokenId), msg.sender);
     }
-    if (circulatingSupply == 1) revert CreatorToken__LastTokenCannotBeSold(circulatingSupply);
+    if (totalSupply == 1) revert CreatorToken__LastTokenCannotBeSold(totalSupply);
 
     uint256 _tokenPrice = _temporaryGetNextTokenPrice();
     (uint256 _creatorFee, uint256 _adminFee) = calculateFees(_tokenPrice);
@@ -127,7 +130,7 @@ contract CreatorToken is ERC721 {
     }
 
     transferFrom(msg.sender, address(this), _tokenId);
-    _burn(_tokenId);
+    _burnAndDecrement(_tokenId);
     emit Sold(msg.sender, _tokenId, _tokenPrice, _creatorFee, _adminFee);
 
     payToken.safeTransfer(creator, _creatorFee);
@@ -157,6 +160,11 @@ contract CreatorToken is ERC721 {
   function _mintAndIncrement(address _to) private {
     lastId += 1;
     _mint(_to, lastId);
-    circulatingSupply += 1;
+    totalSupply += 1;
+  }
+
+  function _burnAndDecrement(uint256 _tokenId) private {
+    _burn(_tokenId);
+    totalSupply -= 1;
   }
 }

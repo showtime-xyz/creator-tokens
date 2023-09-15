@@ -190,6 +190,7 @@ contract Selling is CreatorTokenTest {
 
     uint256 creatorOriginalBalance = payToken.balanceOf(creatorToken.creator());
     uint256 adminOriginalBalance = payToken.balanceOf(creatorToken.admin());
+    uint256 originalTotalSupply = creatorToken.totalSupply();
     (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
     uint256 _totalPrice = BASE_PAY_AMOUNT - _creatorFee - _adminFee;
 
@@ -201,6 +202,7 @@ contract Selling is CreatorTokenTest {
     vm.stopPrank();
 
     assertEq(creatorToken.balanceOf(_seller), 0);
+    assertEq(creatorToken.totalSupply(), originalTotalSupply - 1);
     assertEq(payToken.balanceOf(_seller), _totalPrice);
     assertEq(payToken.balanceOf(creatorToken.creator()), creatorOriginalBalance + _creatorFee);
     assertEq(payToken.balanceOf(creatorToken.admin()), adminOriginalBalance + _adminFee);
@@ -266,7 +268,7 @@ contract Selling is CreatorTokenTest {
     creatorToken.approve(address(creatorToken), tokenId);
     vm.expectRevert(
       abi.encodeWithSelector(
-        CreatorToken.CreatorToken__LastTokenCannotBeSold.selector, creatorToken.circulatingSupply()
+        CreatorToken.CreatorToken__LastTokenCannotBeSold.selector, creatorToken.totalSupply()
       )
     );
     creatorToken.sell(tokenId);
@@ -462,7 +464,7 @@ contract Pausing is CreatorTokenTest {
     vm.startPrank(_seller);
     creatorToken.approve(address(creatorToken), creatorToken.lastId());
     uint256 tokenId = creatorToken.lastId();
-    vm.expectRevert("Pausable: paused");
+    vm.expectRevert(CreatorToken.CreatorToken__ContractIsPaused.selector);
     creatorToken.sell(tokenId, _totalPrice);
     vm.stopPrank();
   }
