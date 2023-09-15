@@ -26,8 +26,8 @@ contract CreatorToken is ERC721 {
   IBondingCurve public immutable BONDING_CURVE;
 
   uint256 constant BIP = 10_000;
-  uint256 public constant CREATOR_FEE_BIPS = 700; // 7% in 4 decimals
-  uint256 public constant ADMIN_FEE_BIPS = 300; // 3% in 4 decimals
+  uint256 public immutable CREATOR_FEE_BIPS;
+  uint256 public immutable ADMIN_FEE_BIPS;
 
   event Bought(
     address indexed _payer,
@@ -67,12 +67,16 @@ contract CreatorToken is ERC721 {
     string memory _name,
     string memory _symbol,
     address _creator,
+    uint256 _creatorFee,
     address _admin,
+    uint256 _adminFee,
     IERC20 _payToken,
     IBondingCurve _bondingCurve
   ) ERC721(_name, _symbol) isNotAddressZero(_creator) isNotAddressZero(_admin) {
     creator = _creator;
+    CREATOR_FEE_BIPS = _creatorFee;
     admin = _admin;
+    ADMIN_FEE_BIPS = _adminFee;
     payToken = _payToken;
     BONDING_CURVE = _bondingCurve;
     _mintAndIncrement(_creator);
@@ -165,7 +169,7 @@ contract CreatorToken is ERC721 {
 
   function calculateFees(uint256 _price)
     public
-    pure
+    view
     returns (uint256 _creatorFee, uint256 _adminFee)
   {
     _creatorFee = (_price * CREATOR_FEE_BIPS) / BIP;
