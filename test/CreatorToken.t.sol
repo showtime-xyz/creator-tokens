@@ -2,11 +2,13 @@
 pragma solidity 0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {CreatorToken} from "src/CreatorToken.sol";
+import {CreatorToken, IBondingCurve} from "src/CreatorToken.sol";
 import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
+import {MockIncrementingBondingCurve} from "test/mocks/MockIncrementingBondingCurve.sol";
 
 contract CreatorTokenTest is Test {
   IERC20 public payToken;
+  IBondingCurve public bondingCurve;
   CreatorToken public creatorToken;
   address public creator = address(0xc2ea702);
   address public admin = address(0xb055);
@@ -37,8 +39,9 @@ contract CreatorTokenTest is Test {
 
   function setUp() public {
     payToken = new ERC20(PAY_TOKEN_NAME, PAY_TOKEN_SYMBOL);
+    bondingCurve = new MockIncrementingBondingCurve(BASE_PAY_AMOUNT);
     creatorToken =
-      new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, admin, payToken);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, admin, payToken, bondingCurve);
   }
 
   // TODO: consider, should this be a view method on the contract itself?
@@ -55,6 +58,7 @@ contract Deployment is CreatorTokenTest {
     assertEq(creatorToken.creator(), creator);
     assertEq(creatorToken.admin(), admin);
     assertEq(address(creatorToken.payToken()), address(payToken));
+    assertEq(address(creatorToken.bondingCurve()), address(bondingCurve));
   }
 
   function test_RevertIf_TokenIsConfiguredWithZeroAddressAsCreator() public {
@@ -62,7 +66,7 @@ contract Deployment is CreatorTokenTest {
     address creatorZero = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     creatorTokenInstance =
-      new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creatorZero, admin, payToken);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creatorZero, admin, payToken, bondingCurve);
   }
 
   function test_RevertIf_TokenIsConfiguredWithZeroAddressAsAdmin() public {
@@ -70,7 +74,7 @@ contract Deployment is CreatorTokenTest {
     address adminZero = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     creatorTokenInstance =
-      new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, adminZero, payToken);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, adminZero, payToken, bondingCurve);
   }
 
   function test_FirstTokenIsMintedToCreator() public {
