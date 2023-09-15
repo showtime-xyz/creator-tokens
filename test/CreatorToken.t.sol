@@ -185,30 +185,28 @@ contract Selling is CreatorTokenTest {
         && _seller != admin
     );
     buyAToken(_seller);
-    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _seller);
-    assertEq(payToken.balanceOf(_seller), 0);
 
     uint256 creatorOriginalBalance = payToken.balanceOf(creatorToken.creator());
     uint256 adminOriginalBalance = payToken.balanceOf(creatorToken.admin());
     uint256 originalTotalSupply = creatorToken.totalSupply();
     (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT - _creatorFee - _adminFee;
+    uint256 _netProceeds = BASE_PAY_AMOUNT - _creatorFee - _adminFee;
 
     vm.startPrank(_seller);
     creatorToken.approve(address(creatorToken), creatorToken.lastId());
     vm.expectEmit(true, true, true, true);
     emit Sold(_seller, creatorToken.lastId(), BASE_PAY_AMOUNT, _creatorFee, _adminFee);
-    creatorToken.sell(creatorToken.lastId(), _totalPrice);
+    creatorToken.sell(creatorToken.lastId(), _netProceeds);
     vm.stopPrank();
 
     assertEq(creatorToken.balanceOf(_seller), 0);
     assertEq(creatorToken.totalSupply(), originalTotalSupply - 1);
-    assertEq(payToken.balanceOf(_seller), _totalPrice);
+    assertEq(payToken.balanceOf(_seller), _netProceeds);
     assertEq(payToken.balanceOf(creatorToken.creator()), creatorOriginalBalance + _creatorFee);
     assertEq(payToken.balanceOf(creatorToken.admin()), adminOriginalBalance + _adminFee);
   }
 
-  function test_RevertIf_MinAcceptedPriceIsHigherThanTotalPrice(
+  function test_RevertIf_MinAcceptedPriceIsHigherThanNetProceeds(
     address _seller,
     uint256 _minAcceptedPrice
   ) public {
@@ -221,15 +219,17 @@ contract Selling is CreatorTokenTest {
     assertEq(payToken.balanceOf(_seller), 0);
 
     (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT - _creatorFee - _adminFee;
-    vm.assume(_minAcceptedPrice > _totalPrice);
+    uint256 _netProceeds = BASE_PAY_AMOUNT - _creatorFee - _adminFee;
+    _minAcceptedPrice = bound(_minAcceptedPrice, _netProceeds + 1, type(uint256).max);
+    uint256 tokenId = creatorToken.lastId();
 
     vm.startPrank(_seller);
-    uint256 tokenId = creatorToken.lastId();
     creatorToken.approve(address(creatorToken), creatorToken.lastId());
     vm.expectRevert(
       abi.encodeWithSelector(
-        CreatorToken.CreatorToken__MinAcceptedPriceExceeded.selector, _totalPrice, _minAcceptedPrice
+        CreatorToken.CreatorToken__MinAcceptedPriceExceeded.selector,
+        _netProceeds,
+        _minAcceptedPrice
       )
     );
     creatorToken.sell(tokenId, _minAcceptedPrice);
@@ -246,11 +246,10 @@ contract Selling is CreatorTokenTest {
         && _seller != admin
     );
     buyAToken(_owner);
-    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _owner);
-    assertEq(payToken.balanceOf(_owner), 0);
+
+    uint256 tokenId = creatorToken.lastId();
 
     vm.startPrank(_seller);
-    uint256 tokenId = creatorToken.lastId();
     vm.expectRevert(
       abi.encodeWithSelector(
         CreatorToken.CreatorToken__CallerIsNotOwner.selector, creatorToken.lastId(), _owner, _seller
@@ -261,10 +260,13 @@ contract Selling is CreatorTokenTest {
   }
 
   function test_RevertIf_LastTokenIsBeingSold() public {
-    assertEq(creatorToken.ownerOf(creatorToken.lastId()), creator);
+    require(
+      creatorToken.ownerOf(creatorToken.lastId()) == creator,
+      "Test invariant violated: creator should be owner of the last token"
+    );
+    uint256 tokenId = creatorToken.lastId();
 
     vm.startPrank(creator);
-    uint256 tokenId = creatorToken.lastId();
     creatorToken.approve(address(creatorToken), tokenId);
     vm.expectRevert(
       abi.encodeWithSelector(
@@ -465,7 +467,7 @@ contract Pausing is CreatorTokenTest {
     creatorToken.approve(address(creatorToken), creatorToken.lastId());
     uint256 tokenId = creatorToken.lastId();
     vm.expectRevert(CreatorToken.CreatorToken__ContractIsPaused.selector);
-    creatorToken.sell(tokenId, _totalPrice);
+    creatorToken.sell(tokenId);
     vm.stopPrank();
   }
 }

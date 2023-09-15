@@ -83,7 +83,7 @@ contract CreatorToken is ERC721 {
   }
 
   function sell(uint256 _tokenId) public {
-    _sell(_tokenId, 0);
+    _sell(_tokenId, 0); // TODO: consider how to test this is curried correctly
   }
 
   function sell(uint256 _tokenId, uint256 _minAcceptedPrice) public {
