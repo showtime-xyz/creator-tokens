@@ -123,10 +123,10 @@ contract CreatorToken is ERC721 {
 
     uint256 _tokenPrice = _temporaryGetNextTokenPrice();
     (uint256 _creatorFee, uint256 _adminFee) = calculateFees(_tokenPrice);
-    uint256 _totalPrice = _tokenPrice - _creatorFee - _adminFee;
+    uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
 
-    if (_totalPrice < _minAcceptedPrice) {
-      revert CreatorToken__MinAcceptedPriceExceeded(_totalPrice, _minAcceptedPrice);
+    if (_netProceeds < _minAcceptedPrice) {
+      revert CreatorToken__MinAcceptedPriceExceeded(_netProceeds, _minAcceptedPrice);
     }
 
     transferFrom(msg.sender, address(this), _tokenId);
@@ -134,7 +134,7 @@ contract CreatorToken is ERC721 {
     emit Sold(msg.sender, _tokenId, _tokenPrice, _creatorFee, _adminFee);
 
     payToken.safeTransfer(creator, _creatorFee);
-    payToken.safeTransfer(msg.sender, _totalPrice);
+    payToken.safeTransfer(msg.sender, _netProceeds);
     payToken.safeTransfer(admin, _adminFee);
   }
 
