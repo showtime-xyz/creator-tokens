@@ -4,7 +4,6 @@ pragma solidity 0.8.20;
 import {ERC721} from "openzeppelin/token/ERC721/ERC721.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import {Pausable} from "openzeppelin/security/Pausable.sol";
 
 contract CreatorToken is ERC721 {
   using SafeERC20 for IERC20;
@@ -17,7 +16,7 @@ contract CreatorToken is ERC721 {
   uint256 public lastId;
   address public creator;
   address public admin;
-  bool public paused;
+  bool public isPaused;
   IERC20 public payToken;
 
   uint256 constant BIP = 10_000;
@@ -47,7 +46,7 @@ contract CreatorToken is ERC721 {
   }
 
   modifier whenNotPaused() {
-    if (paused) revert CreatorToken__ContractIsPaused();
+    if (isPaused) revert CreatorToken__ContractIsPaused();
     _;
   }
 
@@ -98,8 +97,8 @@ contract CreatorToken is ERC721 {
   }
 
   function pause(bool _pauseState) public onlyCreatorOrAdmin(msg.sender) {
-    emit ToggledPause(paused, _pauseState, msg.sender);
-    paused = _pauseState;
+    emit ToggledPause(isPaused, _pauseState, msg.sender);
+    isPaused = _pauseState;
   }
 
   function calculateFees(uint256 _price)
