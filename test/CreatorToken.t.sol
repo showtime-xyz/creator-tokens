@@ -91,8 +91,17 @@ contract Buying is CreatorTokenTest {
     );
     uint256 originalBuyerBalance = creatorToken.balanceOf(_buyer);
 
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(BASE_PAY_AMOUNT);
-    uint256 _totalPrice = BASE_PAY_AMOUNT + _creatorFee + _adminFee;
+    // TODO: 1. Update all buy/sell calls to use the new view methods
+    //       2. Write tests that make multiple purchases and assert the prices match what is returned base on the bonding curve
+    /*
+      Get price
+      assert that token price is equal to what is returned from bondingCurve.priceForTokenNumber
+      Do another buy
+      repeat assertion
+      Etc... with sells + buys across several tests
+     */
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
     vm.startPrank(_buyer);
