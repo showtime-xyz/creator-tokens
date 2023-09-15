@@ -234,13 +234,13 @@ contract Pausing is CreatorTokenTest {
     vm.expectEmit(true, true, true, true);
     emit ToggledPause(false, true, creator);
     creatorToken.pause(true);
-    assertEq(creatorToken.paused(), true);
+    assertEq(creatorToken.isPaused(), true);
 
     // Unpause
     vm.expectEmit(true, true, true, true);
     emit ToggledPause(true, false, creator);
     creatorToken.pause(false);
-    assertEq(creatorToken.paused(), false);
+    assertEq(creatorToken.isPaused(), false);
 
     vm.stopPrank();
   }
@@ -252,13 +252,13 @@ contract Pausing is CreatorTokenTest {
     vm.expectEmit(true, true, true, true);
     emit ToggledPause(false, true, admin);
     creatorToken.pause(true);
-    assertEq(creatorToken.paused(), true);
+    assertEq(creatorToken.isPaused(), true);
 
     // Unpause
     vm.expectEmit(true, true, true, true);
     emit ToggledPause(true, false, admin);
     creatorToken.pause(false);
-    assertEq(creatorToken.paused(), false);
+    assertEq(creatorToken.isPaused(), false);
 
     vm.stopPrank();
   }
@@ -278,7 +278,7 @@ contract Pausing is CreatorTokenTest {
   function test_RevertIf_PausedAndBuyIsCalled(address _buyer) public {
     vm.prank(creator);
     creatorToken.pause(true);
-    assertEq(creatorToken.paused(), true);
+    assertEq(creatorToken.isPaused(), true);
 
     vm.assume(
       _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
@@ -299,7 +299,7 @@ contract Pausing is CreatorTokenTest {
   function test_RevertIf_PausedAndBuyIsCalled(address _buyer, address _receiver) public {
     vm.prank(creator);
     creatorToken.pause(true);
-    assertEq(creatorToken.paused(), true);
+    assertEq(creatorToken.isPaused(), true);
 
     vm.assume(
       _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
