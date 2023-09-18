@@ -58,6 +58,7 @@ contract CreatorTokenTest is Test {
     uint256 _originalBuyerBalanceOfCreatorTokens = creatorToken.balanceOf(_buyer);
     uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
     deal(address(payToken), _buyer, _totalPrice);
+    uint256 _originalPayTokenBalanceOfBuyer = payToken.balanceOf(_buyer);
 
     vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
@@ -70,16 +71,20 @@ contract CreatorTokenTest is Test {
       payToken.balanceOf(address(creatorToken)),
       _originalPayTokenBalanceOfCreatorTokenContract + _tokenPrice
     );
+    assertEq(payToken.balanceOf(_buyer), _originalPayTokenBalanceOfBuyer - _totalPrice);
     assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply + 1);
   }
 
   function sellAToken(address _seller, uint256 _tokenId) public {
-    require(creatorToken.balanceOf(_seller) > 0, "seller does not own any tokens");
-    require(creatorToken.ownerOf(_tokenId) == _seller, "seller does not own the token");
+    require(
+      creatorToken.ownerOf(_tokenId) == _seller,
+      "Broken test invariant: seller does not own the token to sell."
+    );
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
     uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
     uint256 _originalPayTokenBalanceOfCreatorTokenContract =
       payToken.balanceOf(address(creatorToken));
+    uint256 _originalPayTokenBalanceOfSeller = payToken.balanceOf(_seller);
     uint256 _originalSellerBalanceOfCreatorTokens = creatorToken.balanceOf(_seller);
     uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
 
@@ -93,6 +98,7 @@ contract CreatorTokenTest is Test {
       payToken.balanceOf(address(creatorToken)),
       _originalPayTokenBalanceOfCreatorTokenContract - _tokenPrice
     );
+    assertEq(payToken.balanceOf(_seller), _originalPayTokenBalanceOfSeller + _netProceeds);
     assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply - 1);
   }
 }
