@@ -50,6 +50,11 @@ contract CreatorTokenTest is Test {
     return _price + _creatorFee + _adminFee;
   }
 
+  function calculateNetProceeds(uint256 _price) public view returns (uint256) {
+    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(_price);
+    return _price - _creatorFee - _adminFee;
+  }
+
   function buyAToken(address _buyer) public {
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
@@ -517,32 +522,37 @@ contract Pausing is CreatorTokenTest {
 }
 
 contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
-  function test_BuyPriceIsCorrect(address _buyer) public {
+  function test_BuyPriceIsCorrect(address _buyer, uint256 _numTokensToBuy) public {
     vm.assume(
       _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
         && _buyer != admin
     );
-    uint256 _numTokensToBuy = 5;
+    _numTokensToBuy = bound(_numTokensToBuy, 1, 100);
 
     for (uint256 _i = 0; _i < _numTokensToBuy; _i++) {
-      uint256 _originalBuyerBalanceOfCreatorTokens = creatorToken.balanceOf(_buyer);
       (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+      uint256 _bondingCurveTokenPrice =
+        bondingCurve.priceForTokenNumber(creatorToken.totalSupply() + 1);
+      (
+        uint256 _creatorFeeCalculatedWithBondingCurveTokenPrice,
+        uint256 _adminFeeCalculatedWithBondingCurveTokenPrice
+      ) = creatorToken.calculateFees(_bondingCurveTokenPrice);
       uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
-      require(_tokenPrice == bondingCurve.priceForTokenNumber(creatorToken.totalSupply() + 1));
-      require(_totalPrice == calculateTotalPrice(_tokenPrice));
 
+      assertEq(_tokenPrice, _bondingCurveTokenPrice);
+      assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
+      assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
+      assertEq(_totalPrice, calculateTotalPrice(_tokenPrice));
       buyAToken(_buyer);
-      assertEq(creatorToken.balanceOf(_buyer), uint256(_originalBuyerBalanceOfCreatorTokens + 1));
     }
-    assertEq(creatorToken.balanceOf(_buyer), _numTokensToBuy);
   }
 
-  function test_SellPriceIsCorrect(address _seller) public {
+  function test_SellPriceIsCorrect(address _seller, uint256 _numTokensToBuyAndSell) public {
     vm.assume(
       _seller != address(0) && _seller != address(creatorToken) && _seller != creator
         && _seller != admin
     );
-    uint256 _numTokensToBuyAndSell = 5;
+    _numTokensToBuyAndSell = bound(_numTokensToBuyAndSell, 1, 100);
     uint256[] memory _tokenIds = new uint256[](_numTokensToBuyAndSell);
     // buy n tokens
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
@@ -553,13 +563,19 @@ contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
 
     // sell n tokens
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
-      uint256 _originalSellerBalanceOfCreatorTokens = creatorToken.balanceOf(_seller);
-      (uint256 _tokenPrice,,) = creatorToken.nextSellPrice();
-      require(_tokenPrice == bondingCurve.priceForTokenNumber(creatorToken.totalSupply()));
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      uint256 _bondingCurveTokenPrice = bondingCurve.priceForTokenNumber(creatorToken.totalSupply());
+      (
+        uint256 _creatorFeeCalculatedWithBondingCurveTokenPrice,
+        uint256 _adminFeeCalculatedWithBondingCurveTokenPrice
+      ) = creatorToken.calculateFees(_bondingCurveTokenPrice);
+      uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
 
+      assertEq(_tokenPrice, _bondingCurveTokenPrice);
+      assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
+      assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
+      assertEq(_netProceeds, calculateNetProceeds(_tokenPrice));
       sellAToken(_seller, _tokenIds[_i]);
-      assertEq(creatorToken.balanceOf(_seller), uint256(_originalSellerBalanceOfCreatorTokens - 1));
     }
-    assertEq(creatorToken.balanceOf(_seller), 0);
   }
 }
