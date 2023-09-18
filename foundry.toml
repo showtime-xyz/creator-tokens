@@ -2,7 +2,10 @@
   evm_version = "paris"
   optimizer = true
   optimizer_runs = 10_000_000
-  remappings = ["openzeppelin/=lib/openzeppelin-contracts/contracts"]
+  remappings = [
+    "openzeppelin/=lib/openzeppelin-contracts/contracts",
+    "solady/=lib/solady/src",
+  ]
   solc_version = "0.8.20"
   verbosity = 3
 
@@ -18,6 +21,7 @@
 
 [fmt]
   bracket_spacing = false
+  ignore = ["src/lib/*.sol"]
   int_types = "long"
   line_length = 100
   multiline_func_header = "attributes_first"
