@@ -23,7 +23,7 @@ contract CreatorToken is ERC721 {
   address public admin;
   bool public isPaused;
   IERC20 public payToken;
-  IBondingCurve public bondingCurve;
+  IBondingCurve public immutable BONDING_CURVE;
 
   uint256 constant BIP = 10_000;
   uint256 public constant CREATOR_FEE_BIPS = 700; // 7% in 4 decimals
@@ -74,7 +74,7 @@ contract CreatorToken is ERC721 {
     creator = _creator;
     admin = _admin;
     payToken = _payToken;
-    bondingCurve = _bondingCurve;
+    BONDING_CURVE = _bondingCurve;
     _mintAndIncrement(_creator);
   }
 
@@ -150,7 +150,7 @@ contract CreatorToken is ERC721 {
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
-    _tokenPrice = bondingCurve.priceForTokenNumber(totalSupply + 1);
+    _tokenPrice = BONDING_CURVE.priceForTokenNumber(totalSupply + 1);
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 
@@ -159,7 +159,7 @@ contract CreatorToken is ERC721 {
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
-    _tokenPrice = bondingCurve.priceForTokenNumber(totalSupply);
+    _tokenPrice = BONDING_CURVE.priceForTokenNumber(totalSupply);
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 

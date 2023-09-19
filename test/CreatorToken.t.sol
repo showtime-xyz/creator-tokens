@@ -104,7 +104,7 @@ contract Deployment is CreatorTokenTest {
     assertEq(creatorToken.creator(), creator);
     assertEq(creatorToken.admin(), admin);
     assertEq(address(creatorToken.payToken()), address(payToken));
-    assertEq(address(creatorToken.bondingCurve()), address(bondingCurve));
+    assertEq(address(creatorToken.BONDING_CURVE()), address(bondingCurve));
   }
 
   function test_RevertIf_TokenIsConfiguredWithZeroAddressAsCreator() public {
