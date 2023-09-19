@@ -16,6 +16,7 @@ contract CreatorTokenTest is Test {
 
   string CREATOR_TOKEN_NAME = "Test Token";
   string CREATOR_TOKEN_SYMBOL = "TEST";
+  string CREATOR_TOKEN_URI = "URI";
 
   string PAY_TOKEN_NAME = "Payment Token";
   string PAY_TOKEN_SYMBOL = "PAY";
@@ -45,7 +46,7 @@ contract CreatorTokenTest is Test {
     payToken = new ERC20(PAY_TOKEN_NAME, PAY_TOKEN_SYMBOL);
     bondingCurve = new MockIncrementingBondingCurve(BASE_PAY_AMOUNT);
     creatorToken =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, CREATOR_FEE, admin, ADMIN_FEE, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, CREATOR_FEE, admin, ADMIN_FEE, referrer, payToken, bondingCurve);
   }
 
   function _assumeSafeBuyer(address _buyer) public view {
@@ -121,6 +122,7 @@ contract Deployment is CreatorTokenTest {
   function test_TokenIsConfiguredAtDeployment() public {
     assertEq(creatorToken.name(), CREATOR_TOKEN_NAME);
     assertEq(creatorToken.symbol(), CREATOR_TOKEN_SYMBOL);
+    assertEq(creatorToken.tokenURI(), CREATOR_TOKEN_URI);
     assertEq(creatorToken.creator(), creator);
     assertEq(creatorToken.CREATOR_FEE_BIPS(), CREATOR_FEE);
     assertEq(creatorToken.admin(), admin);
@@ -135,7 +137,7 @@ contract Deployment is CreatorTokenTest {
     address _creatorZeroAddress = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     _creatorTokenInstance =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, _creatorZeroAddress, CREATOR_FEE, admin, ADMIN_FEE, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, _creatorZeroAddress, CREATOR_FEE, admin, ADMIN_FEE, referrer, payToken, bondingCurve);
   }
 
   function test_RevertIf_TokenIsConfiguredWithZeroAddressAsAdmin() public {
@@ -143,7 +145,7 @@ contract Deployment is CreatorTokenTest {
     address _adminZeroAddress = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     _creatorTokenInstance =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, CREATOR_FEE, _adminZeroAddress, ADMIN_FEE, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, CREATOR_FEE, _adminZeroAddress, ADMIN_FEE, referrer, payToken, bondingCurve);
   }
 
   function test_RevertIf_CreatorFeeExceedsMaxFee(uint256 _creatorFee) public {
@@ -154,7 +156,7 @@ contract Deployment is CreatorTokenTest {
         CreatorToken.CreatorToken__MaxFeeExceeded.selector, _creatorFee, MAX_FEE
       )
     );
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, _creatorFee, admin, ADMIN_FEE, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, _creatorFee, admin, ADMIN_FEE, referrer, payToken, bondingCurve);
   }
 
   function test_RevertIf_AdminFeeExceedsMaxFee(uint256 _adminFee) public {
@@ -163,7 +165,7 @@ contract Deployment is CreatorTokenTest {
     vm.expectRevert(
       abi.encodeWithSelector(CreatorToken.CreatorToken__MaxFeeExceeded.selector, _adminFee, MAX_FEE)
     );
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, CREATOR_FEE, admin, _adminFee, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, CREATOR_FEE, admin, _adminFee, referrer, payToken, bondingCurve);
   }
 
   function test_FirstTokenIsMintedToCreator() public {
@@ -557,5 +559,32 @@ contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
       assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
       sellAToken(_seller, _tokenIds[_i]);
     }
+  }
+}
+
+contract UpdatingBaseURI is CreatorTokenTest {
+  function test_CreatorCanUpdateBaseURI() public {
+    string memory _newBaseURI = "https://newURI.com/metadata/";
+    vm.prank(creator);
+    creatorToken.updateTokenURI(_newBaseURI);
+    assertEq(creatorToken.tokenURI(), _newBaseURI);
+  }
+
+  function test_AdminCanUpdateBaseURI() public {
+    string memory _newBaseURI = "https://newURI.com/metadata/";
+    vm.prank(admin);
+    creatorToken.updateTokenURI(_newBaseURI);
+    assertEq(creatorToken.tokenURI(), _newBaseURI);
+  }
+
+  function test_RevertIf_CallerIsNotCreatorOrAdmin(address _caller) public {
+    vm.assume(_caller != address(0) && _caller != creator && _caller != admin);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__Unauthorized.selector, bytes32("not creator or admin"), _caller
+      )
+    );
+    vm.prank(_caller);
+    creatorToken.updateTokenURI("updatedURI");
   }
 }
