@@ -44,17 +44,6 @@ contract CreatorTokenTest is Test {
     new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, admin, payToken, bondingCurve);
   }
 
-  // TODO: consider, should this be a view method on the contract itself?
-  function calculateTotalPrice(uint256 _price) public view returns (uint256) {
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(_price);
-    return _price + _creatorFee + _adminFee;
-  }
-
-  function calculateNetProceeds(uint256 _price) public view returns (uint256) {
-    (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(_price);
-    return _price - _creatorFee - _adminFee;
-  }
-
   function buyAToken(address _buyer) public {
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
@@ -62,8 +51,8 @@ contract CreatorTokenTest is Test {
       payToken.balanceOf(address(creatorToken));
     uint256 _originalBuyerBalanceOfCreatorTokens = creatorToken.balanceOf(_buyer);
     uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
-    deal(address(payToken), _buyer, _totalPrice);
     uint256 _originalPayTokenBalanceOfBuyer = payToken.balanceOf(_buyer);
+    deal(address(payToken), _buyer, _totalPrice);
 
     vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
@@ -76,7 +65,7 @@ contract CreatorTokenTest is Test {
       payToken.balanceOf(address(creatorToken)),
       _originalPayTokenBalanceOfCreatorTokenContract + _tokenPrice
     );
-    assertEq(payToken.balanceOf(_buyer), _originalPayTokenBalanceOfBuyer - _totalPrice);
+    assertEq(payToken.balanceOf(_buyer), _originalPayTokenBalanceOfBuyer);
     assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply + 1);
   }
 
@@ -537,12 +526,10 @@ contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
         uint256 _creatorFeeCalculatedWithBondingCurveTokenPrice,
         uint256 _adminFeeCalculatedWithBondingCurveTokenPrice
       ) = creatorToken.calculateFees(_bondingCurveTokenPrice);
-      uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
 
       assertEq(_tokenPrice, _bondingCurveTokenPrice);
       assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
       assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
-      assertEq(_totalPrice, calculateTotalPrice(_tokenPrice));
       buyAToken(_buyer);
     }
   }
@@ -569,12 +556,10 @@ contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
         uint256 _creatorFeeCalculatedWithBondingCurveTokenPrice,
         uint256 _adminFeeCalculatedWithBondingCurveTokenPrice
       ) = creatorToken.calculateFees(_bondingCurveTokenPrice);
-      uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
 
       assertEq(_tokenPrice, _bondingCurveTokenPrice);
       assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
       assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
-      assertEq(_netProceeds, calculateNetProceeds(_tokenPrice));
       sellAToken(_seller, _tokenIds[_i]);
     }
   }
