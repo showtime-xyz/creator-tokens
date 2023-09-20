@@ -21,6 +21,7 @@ contract CreatorTokenTest is Test {
   uint256 BASE_PAY_AMOUNT = 1e18; // Because our test token has 18 decimals
   uint256 constant CREATOR_FEE = 700; // 7%
   uint256 constant ADMIN_FEE = 300; // 3%
+  uint256 constant MAX_FEE = 2500; // matches private variable in CreatorToken
 
   event Bought(
     address indexed _payer,
@@ -125,6 +126,26 @@ contract Deployment is CreatorTokenTest {
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     _creatorTokenInstance =
     new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, CREATOR_FEE, _adminZeroAddress, ADMIN_FEE, payToken, bondingCurve);
+  }
+
+  function test_RevertIf_CreatorFeeExceedsMaxFee(uint256 _creatorFee) public {
+    _creatorFee = bound(_creatorFee, MAX_FEE + 1, type(uint256).max);
+
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__MaxFeeExceeded.selector, _creatorFee, MAX_FEE
+      )
+    );
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, _creatorFee, admin, ADMIN_FEE, payToken, bondingCurve);
+  }
+
+  function test_RevertIf_AdminFeeExceedsMaxFee(uint256 _adminFee) public {
+    _adminFee = bound(_adminFee, MAX_FEE + 1, type(uint256).max);
+
+    vm.expectRevert(
+      abi.encodeWithSelector(CreatorToken.CreatorToken__MaxFeeExceeded.selector, _adminFee, MAX_FEE)
+    );
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, creator, CREATOR_FEE, admin, _adminFee, payToken, bondingCurve);
   }
 
   function test_FirstTokenIsMintedToCreator() public {

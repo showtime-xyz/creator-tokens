@@ -9,6 +9,7 @@ import {IBondingCurve} from "src/interfaces/IBondingCurve.sol";
 contract CreatorToken is ERC721 {
   using SafeERC20 for IERC20;
 
+  error CreatorToken__MaxFeeExceeded(uint256 fee, uint256 maxFee);
   error CreatorToken__MaxPaymentExceeded(uint256 _price, uint256 _maxPayment);
   error CreatorToken__Unauthorized(bytes32 reason, address caller);
   error CreatorToken__AddressZeroNotAllowed();
@@ -28,6 +29,7 @@ contract CreatorToken is ERC721 {
   uint256 constant BIP = 10_000;
   uint256 public immutable CREATOR_FEE_BIPS;
   uint256 public immutable ADMIN_FEE_BIPS;
+  uint256 private constant MAX_FEE = 2500; // 25% in bips
 
   event Bought(
     address indexed _payer,
@@ -73,6 +75,9 @@ contract CreatorToken is ERC721 {
     IERC20 _payToken,
     IBondingCurve _bondingCurve
   ) ERC721(_name, _symbol) isNotAddressZero(_creator) isNotAddressZero(_admin) {
+    if (_creatorFee > MAX_FEE) revert CreatorToken__MaxFeeExceeded(_creatorFee, MAX_FEE);
+    if (_adminFee > MAX_FEE) revert CreatorToken__MaxFeeExceeded(_adminFee, MAX_FEE);
+
     creator = _creator;
     CREATOR_FEE_BIPS = _creatorFee;
     admin = _admin;
