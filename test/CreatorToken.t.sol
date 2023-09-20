@@ -125,7 +125,7 @@ contract Deployment is CreatorTokenTest {
     assertEq(creatorToken.CREATOR_FEE_BIPS(), CREATOR_FEE);
     assertEq(creatorToken.admin(), admin);
     assertEq(creatorToken.ADMIN_FEE_BIPS(), ADMIN_FEE);
-    assertEq(creatorToken.referrer(), referrer);
+    assertEq(creatorToken.REFERRER(), referrer);
     assertEq(address(creatorToken.payToken()), address(payToken));
     assertEq(address(creatorToken.BONDING_CURVE()), address(bondingCurve));
   }
