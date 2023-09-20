@@ -6,7 +6,7 @@ import {CreatorToken, IBondingCurve} from "src/CreatorToken.sol";
 import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {MockIncrementingBondingCurve} from "test/mocks/MockIncrementingBondingCurve.sol";
 
-contract CreatorTokenTest is Test {
+abstract contract CreatorTokenTest is Test {
   IERC20 public payToken;
   IBondingCurve public bondingCurve;
   CreatorToken public creatorToken;
@@ -21,8 +21,8 @@ contract CreatorTokenTest is Test {
   string PAY_TOKEN_NAME = "Payment Token";
   string PAY_TOKEN_SYMBOL = "PAY";
   uint256 BASE_PAY_AMOUNT = 1e18; // Because our test token has 18 decimals
-  uint256 constant CREATOR_FEE = 700; // 7%
-  uint256 constant ADMIN_FEE = 300; // 3%
+  uint256 CREATOR_FEE = 700; // 7%
+  uint256 ADMIN_FEE = 300; // 3%
   uint256 constant MAX_FEE = 2500; // matches private variable in CreatorToken
 
   event Bought(
@@ -43,6 +43,10 @@ contract CreatorTokenTest is Test {
   event ToggledPause(bool _oldPauseState, bool _newPauseState, address _caller);
 
   function setUp() public {
+    (address _referrer, uint256 _creatorFee, uint256 _adminFee) = deployConfig();
+    referrer = _referrer;
+    CREATOR_FEE = _creatorFee;
+    ADMIN_FEE = _adminFee;
     payToken = new ERC20(PAY_TOKEN_NAME, PAY_TOKEN_SYMBOL);
     bondingCurve = new MockIncrementingBondingCurve(BASE_PAY_AMOUNT);
     creatorToken =
@@ -55,6 +59,12 @@ contract CreatorTokenTest is Test {
         && _buyer != admin && _buyer != referrer
     );
   }
+
+  function deployConfig()
+    internal
+    pure
+    virtual
+    returns (address referrer, uint256 creatorFee, uint256 adminFee);
 
   function buyAToken(address _buyer) public {
     _assumeSafeBuyer(_buyer);
@@ -118,7 +128,7 @@ contract CreatorTokenTest is Test {
   }
 }
 
-contract Deployment is CreatorTokenTest {
+abstract contract Deployment is CreatorTokenTest {
   function test_TokenIsConfiguredAtDeployment() public {
     assertEq(creatorToken.name(), CREATOR_TOKEN_NAME);
     assertEq(creatorToken.symbol(), CREATOR_TOKEN_SYMBOL);
@@ -181,7 +191,7 @@ contract Deployment is CreatorTokenTest {
   }
 }
 
-contract Buying is CreatorTokenTest {
+abstract contract Buying is CreatorTokenTest {
   function test_FirstTokenOnBondingCurveCostsTheBasePrice() public {
     (uint256 _tokenPrice,,) = creatorToken.nextBuyPrice();
     assertEq(_tokenPrice, BASE_PAY_AMOUNT);
@@ -250,7 +260,7 @@ contract Buying is CreatorTokenTest {
   }
 }
 
-contract Selling is CreatorTokenTest {
+abstract contract Selling is CreatorTokenTest {
   function test_sellAToken(address _seller) public {
     buyAToken(_seller);
     sellAToken(_seller, creatorToken.lastId());
@@ -343,7 +353,7 @@ contract Selling is CreatorTokenTest {
   }
 }
 
-contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
+abstract contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
   function test_UpdateCreatorAddress(address _newCreator, address _secondNewCreator) public {
     vm.assume(_newCreator != address(0) && _newCreator != creator);
     vm.assume(_secondNewCreator != address(0) && _secondNewCreator != _newCreator);
@@ -413,7 +423,7 @@ contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
   }
 }
 
-contract Pausing is CreatorTokenTest {
+abstract contract Pausing is CreatorTokenTest {
   function test_PauseContractCreator() public {
     vm.startPrank(creator);
 
@@ -515,7 +525,7 @@ contract Pausing is CreatorTokenTest {
   }
 }
 
-contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
+abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
   function test_BuyPriceIsCorrect(address _buyer, uint256 _numTokensToBuy) public {
     _numTokensToBuy = bound(_numTokensToBuy, 1, 100);
 
@@ -565,7 +575,7 @@ contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
   }
 }
 
-contract UpdatingBaseURI is CreatorTokenTest {
+abstract contract UpdatingBaseURI is CreatorTokenTest {
   function test_CreatorCanUpdateBaseURI() public {
     string memory _newBaseURI = "https://newURI.com/metadata/";
     vm.prank(creator);
@@ -589,5 +599,119 @@ contract UpdatingBaseURI is CreatorTokenTest {
     );
     vm.prank(_caller);
     creatorToken.updateTokenURI("updatedURI");
+  }
+}
+
+contract ConfigWithReferrerAndStandardFees is
+  Deployment,
+  Buying,
+  Selling,
+  UpdatingCreatorAndAdminAddresses,
+  Pausing,
+  CreatorTokenFollowsBondingCurveContract,
+  UpdatingBaseURI
+{
+  function deployConfig()
+    internal
+    pure
+    override
+    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+  {
+    return (address(0xaceface), 700, 300);
+  }
+}
+
+contract ConfigWithReferrerAndMaxFees is
+  Deployment,
+  Buying,
+  Selling,
+  UpdatingCreatorAndAdminAddresses,
+  Pausing,
+  CreatorTokenFollowsBondingCurveContract,
+  UpdatingBaseURI
+{
+  function deployConfig()
+    internal
+    pure
+    override
+    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+  {
+    return (address(0xaceface), 2500, 2500);
+  }
+}
+
+contract ConfigWithReferrerAndZeroFees is
+  Deployment,
+  Buying,
+  Selling,
+  UpdatingCreatorAndAdminAddresses,
+  Pausing,
+  CreatorTokenFollowsBondingCurveContract,
+  UpdatingBaseURI
+{
+  function deployConfig()
+    internal
+    pure
+    override
+    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+  {
+    return (address(0xaceface), 0, 0);
+  }
+}
+
+contract ConfigWithoutReferrerAndStandardFees is
+  Deployment,
+  Buying,
+  Selling,
+  UpdatingCreatorAndAdminAddresses,
+  Pausing,
+  CreatorTokenFollowsBondingCurveContract,
+  UpdatingBaseURI
+{
+  function deployConfig()
+    internal
+    pure
+    override
+    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+  {
+    return (address(0), 700, 300);
+  }
+}
+
+contract ConfigWithoutReferrerAndMaxFees is
+  Deployment,
+  Buying,
+  Selling,
+  UpdatingCreatorAndAdminAddresses,
+  Pausing,
+  CreatorTokenFollowsBondingCurveContract,
+  UpdatingBaseURI
+{
+  function deployConfig()
+    internal
+    pure
+    override
+    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+  {
+    return (address(0), 2500, 2500);
+  }
+}
+
+contract ConfigWithoutReferrerAndZeroFees is
+  Deployment,
+  Buying,
+  Selling,
+  UpdatingCreatorAndAdminAddresses,
+  Pausing,
+  CreatorTokenFollowsBondingCurveContract,
+  UpdatingBaseURI
+{
+  function deployConfig()
+    internal
+    pure
+    override
+    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+  {
+    return (address(0), 0, 0);
   }
 }
