@@ -15,13 +15,14 @@ contract CreatorToken is ERC721 {
   error CreatorToken__AddressZeroNotAllowed();
   error CreatorToken__CallerIsNotOwner(uint256 _tokenId, address _owner, address _caller);
   error CreatorToken__MinAcceptedPriceExceeded(uint256 _price, uint256 _minAcceptedPrice);
-  error CreatorToken__LastTokenCannotBeSold(uint256 _circulatingSupply);
+  error CreatorToken__LastTokensCannotBeSold(uint256 _circulatingSupply);
   error CreatorToken__ContractIsPaused();
 
   uint256 public lastId;
   uint256 public totalSupply;
   address public creator;
   address public admin;
+  address public referrer;
   bool public isPaused;
   IERC20 public payToken;
   IBondingCurve public immutable BONDING_CURVE;
@@ -72,6 +73,7 @@ contract CreatorToken is ERC721 {
     uint256 _creatorFee,
     address _admin,
     uint256 _adminFee,
+    address _referrer,
     IERC20 _payToken,
     IBondingCurve _bondingCurve
   ) ERC721(_name, _symbol) isNotAddressZero(_creator) isNotAddressZero(_admin) {
@@ -82,9 +84,12 @@ contract CreatorToken is ERC721 {
     CREATOR_FEE_BIPS = _creatorFee;
     admin = _admin;
     ADMIN_FEE_BIPS = _adminFee;
+    referrer = _referrer;
     payToken = _payToken;
     BONDING_CURVE = _bondingCurve;
     _mintAndIncrement(_creator);
+
+    if (_referrer != address(0)) _mintAndIncrement(_referrer);
   }
 
   function buy(uint256 _maxPayment) public {
@@ -131,7 +136,10 @@ contract CreatorToken is ERC721 {
     if (msg.sender != ownerOf(_tokenId)) {
       revert CreatorToken__CallerIsNotOwner(_tokenId, ownerOf(_tokenId), msg.sender);
     }
-    if (totalSupply == 1) revert CreatorToken__LastTokenCannotBeSold(totalSupply);
+
+    bool _isOneOfLastTokens =
+      (referrer == address(0) && totalSupply == 1) || (referrer != address(0) && totalSupply == 2);
+    if (_isOneOfLastTokens) revert CreatorToken__LastTokensCannotBeSold(totalSupply);
 
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextSellPrice();
     uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
@@ -159,7 +167,7 @@ contract CreatorToken is ERC721 {
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
-    _tokenPrice = BONDING_CURVE.priceForTokenNumber(totalSupply + 1);
+    _tokenPrice = BONDING_CURVE.priceForTokenNumber((totalSupply + 1) - _preMintOffset());
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 
@@ -168,7 +176,7 @@ contract CreatorToken is ERC721 {
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
-    _tokenPrice = BONDING_CURVE.priceForTokenNumber(totalSupply);
+    _tokenPrice = BONDING_CURVE.priceForTokenNumber(totalSupply - _preMintOffset());
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 
@@ -179,6 +187,10 @@ contract CreatorToken is ERC721 {
   {
     _creatorFee = (_price * CREATOR_FEE_BIPS) / BIP;
     _adminFee = (_price * ADMIN_FEE_BIPS) / BIP;
+  }
+
+  function _preMintOffset() private view returns (uint256 _offset) {
+    _offset = referrer == address(0) ? 1 : 2;
   }
 
   function _mintAndIncrement(address _to) private {
