@@ -22,7 +22,7 @@ contract CreatorToken is ERC721 {
   uint256 public totalSupply;
   address public creator;
   address public admin;
-  address public referrer;
+  address public immutable REFERRER;
   bool public isPaused;
   IERC20 public payToken;
   IBondingCurve public immutable BONDING_CURVE;
@@ -84,7 +84,7 @@ contract CreatorToken is ERC721 {
     CREATOR_FEE_BIPS = _creatorFee;
     admin = _admin;
     ADMIN_FEE_BIPS = _adminFee;
-    referrer = _referrer;
+    REFERRER = _referrer;
     payToken = _payToken;
     BONDING_CURVE = _bondingCurve;
     _mintAndIncrement(_creator);
@@ -138,7 +138,7 @@ contract CreatorToken is ERC721 {
     }
 
     bool _isOneOfLastTokens =
-      (referrer == address(0) && totalSupply == 1) || (referrer != address(0) && totalSupply == 2);
+      (REFERRER == address(0) && totalSupply == 1) || (REFERRER != address(0) && totalSupply == 2);
     if (_isOneOfLastTokens) revert CreatorToken__LastTokensCannotBeSold(totalSupply);
 
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextSellPrice();
@@ -190,7 +190,7 @@ contract CreatorToken is ERC721 {
   }
 
   function _preMintOffset() private view returns (uint256 _offset) {
-    _offset = referrer == address(0) ? 1 : 2;
+    _offset = REFERRER == address(0) ? 1 : 2;
   }
 
   function _mintAndIncrement(address _to) private {
