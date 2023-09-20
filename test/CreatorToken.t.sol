@@ -168,14 +168,16 @@ contract Deployment is CreatorTokenTest {
     new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, CREATOR_FEE, admin, _adminFee, referrer, payToken, bondingCurve);
   }
 
-  function test_FirstTokenIsMintedToCreator() public {
+  function test_FirstTokensAreMintedCorrectly() public {
+    bool _isThereAReferrer = referrer != address(0);
+
     assertEq(creatorToken.balanceOf(creator), 1);
     assertEq(creatorToken.ownerOf(1), creator);
-  }
 
-  function test_SecondTokenIsMintedToReferrer() public {
-    assertEq(creatorToken.balanceOf(referrer), 1);
-    assertEq(creatorToken.ownerOf(2), referrer);
+    if (_isThereAReferrer) {
+      assertEq(creatorToken.balanceOf(referrer), 1);
+      assertEq(creatorToken.ownerOf(2), referrer);
+    }
   }
 }
 
@@ -304,6 +306,7 @@ contract Selling is CreatorTokenTest {
   function test_RevertIf_SellerIsNotTokenOwner(address _owner, address _seller) public {
     _assumeSafeBuyer(_seller);
     buyAToken(_owner);
+    vm.assume(_owner != _seller);
 
     uint256 _tokenId = creatorToken.lastId();
 
