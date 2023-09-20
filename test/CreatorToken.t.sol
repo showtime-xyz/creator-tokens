@@ -122,7 +122,7 @@ contract Deployment is CreatorTokenTest {
   function test_TokenIsConfiguredAtDeployment() public {
     assertEq(creatorToken.name(), CREATOR_TOKEN_NAME);
     assertEq(creatorToken.symbol(), CREATOR_TOKEN_SYMBOL);
-    assertEq(creatorToken.tokenURI(), CREATOR_TOKEN_URI);
+    assertEq(creatorToken.tokenURI(1), CREATOR_TOKEN_URI);
     assertEq(creatorToken.creator(), creator);
     assertEq(creatorToken.CREATOR_FEE_BIPS(), CREATOR_FEE);
     assertEq(creatorToken.admin(), admin);
@@ -567,14 +567,14 @@ contract UpdatingBaseURI is CreatorTokenTest {
     string memory _newBaseURI = "https://newURI.com/metadata/";
     vm.prank(creator);
     creatorToken.updateTokenURI(_newBaseURI);
-    assertEq(creatorToken.tokenURI(), _newBaseURI);
+    assertEq(creatorToken.tokenURI(1), _newBaseURI);
   }
 
   function test_AdminCanUpdateBaseURI() public {
     string memory _newBaseURI = "https://newURI.com/metadata/";
     vm.prank(admin);
     creatorToken.updateTokenURI(_newBaseURI);
-    assertEq(creatorToken.tokenURI(), _newBaseURI);
+    assertEq(creatorToken.tokenURI(1), _newBaseURI);
   }
 
   function test_RevertIf_CallerIsNotCreatorOrAdmin(address _caller) public {
