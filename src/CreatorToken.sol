@@ -24,7 +24,7 @@ contract CreatorToken is ERC721 {
   address public admin;
   address public immutable REFERRER;
   bool public isPaused;
-  string public tokenURI;
+  string private creatorTokenURI;
   IERC20 public payToken;
   IBondingCurve public immutable BONDING_CURVE;
 
@@ -82,7 +82,7 @@ contract CreatorToken is ERC721 {
     if (_creatorFee > MAX_FEE) revert CreatorToken__MaxFeeExceeded(_creatorFee, MAX_FEE);
     if (_adminFee > MAX_FEE) revert CreatorToken__MaxFeeExceeded(_adminFee, MAX_FEE);
 
-    tokenURI = _tokenURI;
+    creatorTokenURI = _tokenURI;
     creator = _creator;
     CREATOR_FEE_BIPS = _creatorFee;
     admin = _admin;
@@ -121,8 +121,12 @@ contract CreatorToken is ERC721 {
     admin = _newAdmin;
   }
 
+  function tokenURI(uint256) public view override returns (string memory) {
+    return creatorTokenURI;
+  }
+
   function updateTokenURI(string memory _newTokenURI) public onlyCreatorOrAdmin(msg.sender) {
-    tokenURI = _newTokenURI;
+    creatorTokenURI = _newTokenURI;
   }
 
   function _buy(address _to, uint256 _maxPayment) internal whenNotPaused {
