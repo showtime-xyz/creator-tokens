@@ -8,10 +8,10 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
 contract CTBondingCurve is IBondingCurve {
   using SafeCast for uint256;
 
-  uint128 public immutable basePrice;
-  uint128 public immutable linearPriceSlope;
-  uint128 public immutable inflectionPrice;
-  uint32 public immutable inflectionPoint;
+  uint128 public immutable BASE_PRICE;
+  uint128 public immutable LINEAR_PRICE_SLOPE;
+  uint128 public immutable INFLECTION_PRICE;
+  uint32 public immutable INFLECTION_POINT;
 
   // TODO: documentation should make clear the expectation that inflection price,
   // which will be in the token's raw decimals, must be much greater than the
@@ -22,17 +22,17 @@ contract CTBondingCurve is IBondingCurve {
     uint128 _inflectionPrice,
     uint32 _inflectionPoint
   ) {
-    basePrice = _basePrice;
-    linearPriceSlope = _linearPriceSlope;
-    inflectionPrice = _inflectionPrice;
-    inflectionPoint = _inflectionPoint;
+    BASE_PRICE = _basePrice;
+    LINEAR_PRICE_SLOPE = _linearPriceSlope;
+    INFLECTION_PRICE = _inflectionPrice;
+    INFLECTION_POINT = _inflectionPoint;
   }
 
   function priceForTokenNumber(uint256 _tokenNumber) external view returns (uint256 _price) {
     uint32 _currentSupply = _tokenNumber.toUint32() - 1;
 
-    _price = basePrice;
-    _price += BondingCurveLib.linearSum(linearPriceSlope, _currentSupply, 1);
-    _price += BondingCurveLib.sigmoid2Sum(inflectionPoint, inflectionPrice, _currentSupply, 1);
+    _price = BASE_PRICE;
+    _price += BondingCurveLib.linearSum(LINEAR_PRICE_SLOPE, _currentSupply, 1);
+    _price += BondingCurveLib.sigmoid2Sum(INFLECTION_POINT, INFLECTION_PRICE, _currentSupply, 1);
   }
 }
