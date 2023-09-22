@@ -8,13 +8,16 @@ import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
 contract CTBondingCurve is IBondingCurve {
   using SafeCast for uint256;
 
-  uint256 public immutable basePrice;
+  uint128 public immutable basePrice;
   uint128 public immutable linearPriceSlope;
   uint128 public immutable inflectionPrice;
   uint32 public immutable inflectionPoint;
 
+  // TODO: documentation should make clear the expectation that inflection price,
+  // which will be in the token's raw decimals, must be much greater than the
+  // inflection point for this math to produce correct results in the quadratic section.
   constructor(
-    uint256 _basePrice,
+    uint128 _basePrice,
     uint128 _linearPriceSlope,
     uint128 _inflectionPrice,
     uint32 _inflectionPoint
