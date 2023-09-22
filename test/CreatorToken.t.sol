@@ -12,7 +12,7 @@ abstract contract CreatorTokenTest is Test {
   CreatorToken public creatorToken;
   address public creator = address(0xc2ea702);
   address public admin = address(0xb055);
-  address public referrer = address(0xaceface);
+  address public referrer;
 
   string CREATOR_TOKEN_NAME = "Test Token";
   string CREATOR_TOKEN_SYMBOL = "TEST";
@@ -21,8 +21,8 @@ abstract contract CreatorTokenTest is Test {
   string PAY_TOKEN_NAME = "Payment Token";
   string PAY_TOKEN_SYMBOL = "PAY";
   uint256 BASE_PAY_AMOUNT = 1e18; // Because our test token has 18 decimals
-  uint256 CREATOR_FEE = 700; // 7%
-  uint256 ADMIN_FEE = 300; // 3%
+  uint256 creatorFee;
+  uint256 adminFee;
   uint256 constant MAX_FEE = 2500; // matches private variable in CreatorToken
 
   event Bought(
@@ -45,12 +45,12 @@ abstract contract CreatorTokenTest is Test {
   function setUp() public {
     (address _referrer, uint256 _creatorFee, uint256 _adminFee) = deployConfig();
     referrer = _referrer;
-    CREATOR_FEE = _creatorFee;
-    ADMIN_FEE = _adminFee;
+    creatorFee = _creatorFee;
+    adminFee = _adminFee;
     payToken = new ERC20(PAY_TOKEN_NAME, PAY_TOKEN_SYMBOL);
     bondingCurve = new MockIncrementingBondingCurve(BASE_PAY_AMOUNT);
     creatorToken =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, CREATOR_FEE, admin, ADMIN_FEE, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, admin, adminFee, referrer, payToken, bondingCurve);
   }
 
   function _assumeSafeBuyer(address _buyer) public view {
@@ -134,9 +134,9 @@ abstract contract Deployment is CreatorTokenTest {
     assertEq(creatorToken.symbol(), CREATOR_TOKEN_SYMBOL);
     assertEq(creatorToken.tokenURI(1), CREATOR_TOKEN_URI);
     assertEq(creatorToken.creator(), creator);
-    assertEq(creatorToken.CREATOR_FEE_BIPS(), CREATOR_FEE);
+    assertEq(creatorToken.CREATOR_FEE_BIPS(), creatorFee);
     assertEq(creatorToken.admin(), admin);
-    assertEq(creatorToken.ADMIN_FEE_BIPS(), ADMIN_FEE);
+    assertEq(creatorToken.ADMIN_FEE_BIPS(), adminFee);
     assertEq(creatorToken.REFERRER(), referrer);
     assertEq(address(creatorToken.payToken()), address(payToken));
     assertEq(address(creatorToken.BONDING_CURVE()), address(bondingCurve));
@@ -147,7 +147,7 @@ abstract contract Deployment is CreatorTokenTest {
     address _creatorZeroAddress = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     _creatorTokenInstance =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, _creatorZeroAddress, CREATOR_FEE, admin, ADMIN_FEE, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, _creatorZeroAddress, creatorFee, admin, adminFee, referrer, payToken, bondingCurve);
   }
 
   function test_RevertIf_TokenIsConfiguredWithZeroAddressAsAdmin() public {
@@ -155,7 +155,7 @@ abstract contract Deployment is CreatorTokenTest {
     address _adminZeroAddress = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     _creatorTokenInstance =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, CREATOR_FEE, _adminZeroAddress, ADMIN_FEE, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, _adminZeroAddress, adminFee, referrer, payToken, bondingCurve);
   }
 
   function test_RevertIf_CreatorFeeExceedsMaxFee(uint256 _creatorFee) public {
@@ -166,7 +166,7 @@ abstract contract Deployment is CreatorTokenTest {
         CreatorToken.CreatorToken__MaxFeeExceeded.selector, _creatorFee, MAX_FEE
       )
     );
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, _creatorFee, admin, ADMIN_FEE, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, _creatorFee, admin, adminFee, referrer, payToken, bondingCurve);
   }
 
   function test_RevertIf_AdminFeeExceedsMaxFee(uint256 _adminFee) public {
@@ -175,7 +175,7 @@ abstract contract Deployment is CreatorTokenTest {
     vm.expectRevert(
       abi.encodeWithSelector(CreatorToken.CreatorToken__MaxFeeExceeded.selector, _adminFee, MAX_FEE)
     );
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, CREATOR_FEE, admin, _adminFee, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, admin, _adminFee, referrer, payToken, bondingCurve);
   }
 
   function test_FirstTokensAreMintedCorrectly() public {
@@ -314,10 +314,10 @@ abstract contract Selling is CreatorTokenTest {
   }
 
   function test_RevertIf_SellerIsNotTokenOwner(address _owner, address _seller) public {
-    _assumeSafeBuyer(_seller);
-    buyAToken(_owner);
     vm.assume(_owner != _seller);
+    _assumeSafeBuyer(_seller);
 
+    buyAToken(_owner);
     uint256 _tokenId = creatorToken.lastId();
 
     vm.startPrank(_seller);
