@@ -16,8 +16,9 @@
 [profile.lite]
   fuzz = { runs = 50 }
   invariant = { runs = 10 }
-  # Speed up compilation and tests during development.
-  optimizer = false
+
+[rpc_endpoints]
+  base = "${BASE_RPC_URL}"
 
 [fmt]
   bracket_spacing = false
