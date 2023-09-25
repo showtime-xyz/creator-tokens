@@ -10,12 +10,12 @@ contract CreatorToken is ERC721 {
   using SafeERC20 for IERC20;
 
   error CreatorToken__MaxFeeExceeded(uint256 fee, uint256 maxFee);
-  error CreatorToken__MaxPaymentExceeded(uint256 _price, uint256 _maxPayment);
+  error CreatorToken__MaxPaymentExceeded(uint256 price, uint256 maxPayment);
   error CreatorToken__Unauthorized(bytes32 reason, address caller);
   error CreatorToken__AddressZeroNotAllowed();
-  error CreatorToken__CallerIsNotOwner(uint256 _tokenId, address _owner, address _caller);
-  error CreatorToken__MinAcceptedPriceExceeded(uint256 _price, uint256 _minAcceptedPrice);
-  error CreatorToken__LastTokensCannotBeSold(uint256 _circulatingSupply);
+  error CreatorToken__CallerIsNotOwner(uint256 tokenId, address owner, address caller);
+  error CreatorToken__MinAcceptedPriceExceeded(uint256 price, uint256 minAcceptedPrice);
+  error CreatorToken__LastTokensCannotBeSold(uint256 circulatingSupply);
   error CreatorToken__ContractIsPaused();
 
   uint256 public lastId;
@@ -34,21 +34,24 @@ contract CreatorToken is ERC721 {
   uint256 private constant MAX_FEE = 2500; // 25% in bips
 
   event Bought(
-    address indexed _payer,
-    address indexed _receiver,
-    uint256 indexed _tokenId,
-    uint256 _paymentAmount,
-    uint256 _creatorFee,
-    uint256 _adminFee
+    address indexed payer,
+    address indexed receiver,
+    uint256 indexed tokenId,
+    uint256 paymentAmount,
+    uint256 creatorFee,
+    uint256 adminFee
   );
   event Sold(
-    address indexed _seller,
-    uint256 indexed _tokenId,
-    uint256 _salePrice,
-    uint256 _creatorFee,
-    uint256 _adminFee
+    address indexed seller,
+    uint256 indexed tokenId,
+    uint256 salePrice,
+    uint256 creatorFee,
+    uint256 adminFee
   );
-  event ToggledPause(bool _oldPauseState, bool _newPauseState, address _caller);
+  event ToggledPause(bool oldPauseState, bool newPauseState, address caller);
+  event UpdatedCreator(address oldCreator, address newCreator);
+  event UpdatedAdmin(address oldAdmin, address newAdmin);
+  event UpdatedTokenURI(string oldTokenURI, string newTokenURI);
 
   modifier isNotAddressZero(address _address) {
     if (_address == address(0)) revert CreatorToken__AddressZeroNotAllowed();
@@ -114,11 +117,13 @@ contract CreatorToken is ERC721 {
   function updateCreator(address _newCreator) public isNotAddressZero(_newCreator) {
     if (msg.sender != creator) revert CreatorToken__Unauthorized("not creator", msg.sender);
     creator = _newCreator;
+    emit UpdatedCreator(msg.sender, _newCreator);
   }
 
   function updateAdmin(address _newAdmin) public isNotAddressZero(_newAdmin) {
     if (msg.sender != admin) revert CreatorToken__Unauthorized("not admin", msg.sender);
     admin = _newAdmin;
+    emit UpdatedAdmin(msg.sender, _newAdmin);
   }
 
   function tokenURI(uint256) public view override returns (string memory) {
@@ -126,6 +131,7 @@ contract CreatorToken is ERC721 {
   }
 
   function updateTokenURI(string memory _newTokenURI) public onlyCreatorOrAdmin(msg.sender) {
+    emit UpdatedTokenURI(creatorTokenURI, _newTokenURI);
     creatorTokenURI = _newTokenURI;
   }
 

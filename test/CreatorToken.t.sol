@@ -26,21 +26,24 @@ abstract contract CreatorTokenTest is Test {
   uint256 constant MAX_FEE = 2500; // matches private variable in CreatorToken
 
   event Bought(
-    address indexed _payer,
-    address indexed _receiver,
-    uint256 indexed _tokenId,
-    uint256 _paymentAmount,
-    uint256 _creatorFee,
-    uint256 _adminFee
+    address indexed payer,
+    address indexed receiver,
+    uint256 indexed tokenId,
+    uint256 paymentAmount,
+    uint256 creatorFee,
+    uint256 adminFee
   );
   event Sold(
-    address indexed _seller,
-    uint256 indexed _tokenId,
-    uint256 _salePrice,
-    uint256 _creatorFee,
-    uint256 _adminFee
+    address indexed seller,
+    uint256 indexed tokenId,
+    uint256 salePrice,
+    uint256 creatorFee,
+    uint256 adminFee
   );
-  event ToggledPause(bool _oldPauseState, bool _newPauseState, address _caller);
+  event ToggledPause(bool oldPauseState, bool newPauseState, address caller);
+  event UpdatedCreator(address oldCreator, address newCreator);
+  event UpdatedAdmin(address oldAdmin, address newAdmin);
+  event UpdatedTokenURI(string oldTokenURI, string newTokenURI);
 
   function setUp() public {
     (address _referrer, uint256 _creatorFee, uint256 _adminFee) = deployConfig();
@@ -359,10 +362,14 @@ abstract contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
     vm.assume(_secondNewCreator != address(0) && _secondNewCreator != _newCreator);
 
     vm.prank(creator);
+    vm.expectEmit(true, true, true, true);
+    emit UpdatedCreator(creator, _newCreator);
     creatorToken.updateCreator(_newCreator);
     assertEq(creatorToken.creator(), _newCreator);
 
     vm.prank(_newCreator);
+    vm.expectEmit(true, true, true, true);
+    emit UpdatedCreator(_newCreator, _secondNewCreator);
     creatorToken.updateCreator(_secondNewCreator);
     assertEq(creatorToken.creator(), _secondNewCreator);
   }
@@ -393,10 +400,14 @@ abstract contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
     vm.assume(_secondNewAdmin != address(0) && _secondNewAdmin != _newAdmin);
 
     vm.prank(admin);
+    vm.expectEmit(true, true, true, true);
+    emit UpdatedAdmin(admin, _newAdmin);
     creatorToken.updateAdmin(_newAdmin);
     assertEq(creatorToken.admin(), _newAdmin);
 
     vm.prank(_newAdmin);
+    vm.expectEmit(true, true, true, true);
+    emit UpdatedAdmin(_newAdmin, _secondNewAdmin);
     creatorToken.updateAdmin(_secondNewAdmin);
     assertEq(creatorToken.admin(), _secondNewAdmin);
   }
@@ -579,6 +590,8 @@ abstract contract UpdatingBaseURI is CreatorTokenTest {
   function test_CreatorCanUpdateBaseURI() public {
     string memory _newBaseURI = "https://newURI.com/metadata/";
     vm.prank(creator);
+    vm.expectEmit(true, true, true, true);
+    emit UpdatedTokenURI(CREATOR_TOKEN_URI, _newBaseURI);
     creatorToken.updateTokenURI(_newBaseURI);
     assertEq(creatorToken.tokenURI(1), _newBaseURI);
   }
@@ -586,6 +599,8 @@ abstract contract UpdatingBaseURI is CreatorTokenTest {
   function test_AdminCanUpdateBaseURI() public {
     string memory _newBaseURI = "https://newURI.com/metadata/";
     vm.prank(admin);
+    vm.expectEmit(true, true, true, true);
+    emit UpdatedTokenURI(CREATOR_TOKEN_URI, _newBaseURI);
     creatorToken.updateTokenURI(_newBaseURI);
     assertEq(creatorToken.tokenURI(1), _newBaseURI);
   }
