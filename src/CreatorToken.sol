@@ -49,9 +49,9 @@ contract CreatorToken is ERC721 {
     uint256 adminFee
   );
   event ToggledPause(bool oldPauseState, bool newPauseState, address caller);
-  event UpdatedCreator(address oldCreator, address newCreator);
-  event UpdatedAdmin(address oldAdmin, address newAdmin);
-  event UpdatedTokenURI(string oldTokenURI, string newTokenURI);
+  event CreatorUpdated(address oldCreator, address newCreator);
+  event AdminUpdated(address oldAdmin, address newAdmin);
+  event TokenURIUpdated(string oldTokenURI, string newTokenURI);
 
   modifier isNotAddressZero(address _address) {
     if (_address == address(0)) revert CreatorToken__AddressZeroNotAllowed();
@@ -117,13 +117,13 @@ contract CreatorToken is ERC721 {
   function updateCreator(address _newCreator) public isNotAddressZero(_newCreator) {
     if (msg.sender != creator) revert CreatorToken__Unauthorized("not creator", msg.sender);
     creator = _newCreator;
-    emit UpdatedCreator(msg.sender, _newCreator);
+    emit CreatorUpdated(msg.sender, _newCreator);
   }
 
   function updateAdmin(address _newAdmin) public isNotAddressZero(_newAdmin) {
     if (msg.sender != admin) revert CreatorToken__Unauthorized("not admin", msg.sender);
     admin = _newAdmin;
-    emit UpdatedAdmin(msg.sender, _newAdmin);
+    emit AdminUpdated(msg.sender, _newAdmin);
   }
 
   function tokenURI(uint256) public view override returns (string memory) {
@@ -131,7 +131,7 @@ contract CreatorToken is ERC721 {
   }
 
   function updateTokenURI(string memory _newTokenURI) public onlyCreatorOrAdmin(msg.sender) {
-    emit UpdatedTokenURI(creatorTokenURI, _newTokenURI);
+    emit TokenURIUpdated(creatorTokenURI, _newTokenURI);
     creatorTokenURI = _newTokenURI;
   }
 
