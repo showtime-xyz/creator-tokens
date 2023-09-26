@@ -99,17 +99,23 @@ contract CreatorToken is ERC721 {
   }
 
   function buy(uint256 _maxPayment) public {
-    _buy(msg.sender, _maxPayment);
+    uint256 _totalPrice = _buy(msg.sender);
+    if (_totalPrice > _maxPayment) {
+      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
+    }
   }
 
   function buy(address _to, uint256 _maxPayment) public {
-    _buy(_to, _maxPayment);
+    uint256 _totalPrice = _buy(_to);
+    if (_totalPrice > _maxPayment) {
+      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
+    }
   }
 
   function bulkBuy(uint256 _numOfTokens, uint256 _maxPayment) public {
     uint256 _totalPrice;
     for (uint256 _i = 0; _i < _numOfTokens; _i++) {
-      _totalPrice += _buy(msg.sender, type(uint256).max);
+      _totalPrice += _buy(msg.sender);
     }
     if (_totalPrice > _maxPayment) {
       revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
@@ -119,7 +125,7 @@ contract CreatorToken is ERC721 {
   function bulkBuy(address _to, uint256 _numOfTokens, uint256 _maxPayment) public {
     uint256 _totalPrice;
     for (uint256 _i = 0; _i < _numOfTokens; _i++) {
-      _totalPrice += _buy(_to, type(uint256).max);
+      _totalPrice += _buy(_to);
     }
     if (_totalPrice > _maxPayment) {
       revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
@@ -155,17 +161,10 @@ contract CreatorToken is ERC721 {
     creatorTokenURI = _newTokenURI;
   }
 
-  function _buy(address _to, uint256 _maxPayment)
-    internal
-    whenNotPaused
-    returns (uint256 _totalPrice)
-  {
+  function _buy(address _to) internal whenNotPaused returns (uint256 _totalPrice) {
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextBuyPrice();
     _totalPrice = _tokenPrice + _creatorFee + _adminFee;
 
-    if (_totalPrice > _maxPayment) {
-      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
-    }
     _mintAndIncrement(_to);
     emit Bought(msg.sender, _to, lastId, _tokenPrice, _creatorFee, _adminFee);
     payToken.safeTransferFrom(msg.sender, address(this), _tokenPrice);
@@ -208,8 +207,7 @@ contract CreatorToken is ERC721 {
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
-    _tokenPrice = BONDING_CURVE.priceForTokenNumber((totalSupply + 1) - _preMintOffset());
-    (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
+    (_tokenPrice, _creatorFee, _adminFee) = priceForTokenId(totalSupply + 1);
   }
 
   function nextSellPrice()
@@ -217,8 +215,7 @@ contract CreatorToken is ERC721 {
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
-    _tokenPrice = BONDING_CURVE.priceForTokenNumber(totalSupply - _preMintOffset());
-    (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
+    (_tokenPrice, _creatorFee, _adminFee) = priceForTokenId(totalSupply);
   }
 
   function priceForTokenId(uint256 _tokenId)

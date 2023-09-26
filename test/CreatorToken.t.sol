@@ -594,6 +594,12 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
 
     for (uint256 _i = 0; _i < _numTokensToBuy; _i++) {
       (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+      (
+        uint256 _tokenPriceFromPriceForTokenId,
+        uint256 _creatorFeeFromPriceForTokenId,
+        uint256 _adminFeeFromPriceForTokenId
+      ) = creatorToken.priceForTokenId(creatorToken.totalSupply() + 1);
+
       uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
       uint256 _bondingCurveTokenPrice =
         bondingCurve.priceForTokenNumber((creatorToken.totalSupply() + 1) - _preMintOffset);
@@ -605,6 +611,9 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
       assertEq(_tokenPrice, _bondingCurveTokenPrice);
       assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
       assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
+      assertEq(_tokenPrice, _tokenPriceFromPriceForTokenId);
+      assertEq(_creatorFee, _creatorFeeFromPriceForTokenId);
+      assertEq(_adminFee, _adminFeeFromPriceForTokenId);
       buyAToken(_buyer);
     }
   }
@@ -622,6 +631,12 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
     // sell n tokens
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
       (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      (
+        uint256 _tokenPriceFromPriceForTokenId,
+        uint256 _creatorFeeFromPriceForTokenId,
+        uint256 _adminFeeFromPriceForTokenId
+      ) = creatorToken.priceForTokenId(creatorToken.totalSupply());
+
       uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
       uint256 _bondingCurveTokenPrice =
         bondingCurve.priceForTokenNumber(creatorToken.totalSupply() - _preMintOffset);
@@ -633,6 +648,9 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
       assertEq(_tokenPrice, _bondingCurveTokenPrice);
       assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
       assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
+      assertEq(_tokenPrice, _tokenPriceFromPriceForTokenId);
+      assertEq(_creatorFee, _creatorFeeFromPriceForTokenId);
+      assertEq(_adminFee, _adminFeeFromPriceForTokenId);
       sellAToken(_seller, _tokenIds[_i]);
     }
   }
