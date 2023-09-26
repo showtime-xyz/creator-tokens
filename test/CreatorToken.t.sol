@@ -41,9 +41,9 @@ abstract contract CreatorTokenTest is Test {
     uint256 adminFee
   );
   event ToggledPause(bool oldPauseState, bool newPauseState, address caller);
-  event UpdatedCreator(address oldCreator, address newCreator);
-  event UpdatedAdmin(address oldAdmin, address newAdmin);
-  event UpdatedTokenURI(string oldTokenURI, string newTokenURI);
+  event CreatorUpdated(address oldCreator, address newCreator);
+  event AdminUpdated(address oldAdmin, address newAdmin);
+  event TokenURIUpdated(string oldTokenURI, string newTokenURI);
 
   function setUp() public {
     (address _referrer, uint256 _creatorFee, uint256 _adminFee) = deployConfig();
@@ -363,13 +363,13 @@ abstract contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
 
     vm.prank(creator);
     vm.expectEmit(true, true, true, true);
-    emit UpdatedCreator(creator, _newCreator);
+    emit CreatorUpdated(creator, _newCreator);
     creatorToken.updateCreator(_newCreator);
     assertEq(creatorToken.creator(), _newCreator);
 
     vm.prank(_newCreator);
     vm.expectEmit(true, true, true, true);
-    emit UpdatedCreator(_newCreator, _secondNewCreator);
+    emit CreatorUpdated(_newCreator, _secondNewCreator);
     creatorToken.updateCreator(_secondNewCreator);
     assertEq(creatorToken.creator(), _secondNewCreator);
   }
@@ -401,13 +401,13 @@ abstract contract UpdatingCreatorAndAdminAddresses is CreatorTokenTest {
 
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
-    emit UpdatedAdmin(admin, _newAdmin);
+    emit AdminUpdated(admin, _newAdmin);
     creatorToken.updateAdmin(_newAdmin);
     assertEq(creatorToken.admin(), _newAdmin);
 
     vm.prank(_newAdmin);
     vm.expectEmit(true, true, true, true);
-    emit UpdatedAdmin(_newAdmin, _secondNewAdmin);
+    emit AdminUpdated(_newAdmin, _secondNewAdmin);
     creatorToken.updateAdmin(_secondNewAdmin);
     assertEq(creatorToken.admin(), _secondNewAdmin);
   }
@@ -591,7 +591,7 @@ abstract contract UpdatingBaseURI is CreatorTokenTest {
     string memory _newBaseURI = "https://newURI.com/metadata/";
     vm.prank(creator);
     vm.expectEmit(true, true, true, true);
-    emit UpdatedTokenURI(CREATOR_TOKEN_URI, _newBaseURI);
+    emit TokenURIUpdated(CREATOR_TOKEN_URI, _newBaseURI);
     creatorToken.updateTokenURI(_newBaseURI);
     assertEq(creatorToken.tokenURI(1), _newBaseURI);
   }
@@ -600,7 +600,7 @@ abstract contract UpdatingBaseURI is CreatorTokenTest {
     string memory _newBaseURI = "https://newURI.com/metadata/";
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
-    emit UpdatedTokenURI(CREATOR_TOKEN_URI, _newBaseURI);
+    emit TokenURIUpdated(CREATOR_TOKEN_URI, _newBaseURI);
     creatorToken.updateTokenURI(_newBaseURI);
     assertEq(creatorToken.tokenURI(1), _newBaseURI);
   }
