@@ -106,6 +106,26 @@ contract CreatorToken is ERC721 {
     _buy(_to, _maxPayment);
   }
 
+  function bulkBuy(uint256 _numOfTokens, uint256 _maxPayment) public {
+    uint256 _totalPrice;
+    for (uint256 _i = 0; _i < _numOfTokens; _i++) {
+      _totalPrice += _buy(msg.sender, type(uint256).max);
+    }
+    if (_totalPrice > _maxPayment) {
+      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
+    }
+  }
+
+  function bulkBuy(address _to, uint256 _numOfTokens, uint256 _maxPayment) public {
+    uint256 _totalPrice;
+    for (uint256 _i = 0; _i < _numOfTokens; _i++) {
+      _totalPrice += _buy(_to, type(uint256).max);
+    }
+    if (_totalPrice > _maxPayment) {
+      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
+    }
+  }
+
   function sell(uint256 _tokenId) public {
     _sell(_tokenId, 0); // TODO: consider how to test this is curried correctly
   }
@@ -135,9 +155,13 @@ contract CreatorToken is ERC721 {
     creatorTokenURI = _newTokenURI;
   }
 
-  function _buy(address _to, uint256 _maxPayment) internal whenNotPaused {
+  function _buy(address _to, uint256 _maxPayment)
+    internal
+    whenNotPaused
+    returns (uint256 _totalPrice)
+  {
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextBuyPrice();
-    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+    _totalPrice = _tokenPrice + _creatorFee + _adminFee;
 
     if (_totalPrice > _maxPayment) {
       revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
@@ -194,6 +218,15 @@ contract CreatorToken is ERC721 {
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
     _tokenPrice = BONDING_CURVE.priceForTokenNumber(totalSupply - _preMintOffset());
+    (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
+  }
+
+  function priceForTokenId(uint256 _tokenId)
+    public
+    view
+    returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
+  {
+    _tokenPrice = BONDING_CURVE.priceForTokenNumber(_tokenId - _preMintOffset());
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 

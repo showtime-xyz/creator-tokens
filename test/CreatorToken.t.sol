@@ -242,6 +242,58 @@ abstract contract Buying is CreatorTokenTest {
     vm.stopPrank();
   }
 
+  function test_BulkBuy(address _buyer, uint256 _numTokensToBuy) public {
+    _assumeSafeBuyer(_buyer);
+    _numTokensToBuy = bound(_numTokensToBuy, 1, 100);
+
+    uint256 _originalPayTokenBalanceOfCreatorTokenContract =
+      payToken.balanceOf(address(creatorToken));
+    uint256 _originalBuyerBalanceOfCreatorTokens = creatorToken.balanceOf(_buyer);
+    uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
+    uint256 _originalPayTokenBalanceOfBuyer = payToken.balanceOf(_buyer);
+    uint256 _originalPayTokenBalanceOfCreator = payToken.balanceOf(creator);
+    uint256 _originalPayTokenBalanceOfAdmin = payToken.balanceOf(admin);
+
+    uint256 _expectedPayTokenAddedToContract;
+    uint256 _expectedTotalPricePaidByBuyer;
+    uint256 _expectedPayTokenEarnedByCreator;
+    uint256 _expectedPayTokenEarnedByAdmin;
+
+    for (uint256 _i = 1; _i <= _numTokensToBuy; _i++) {
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) =
+        creatorToken.priceForTokenId(creatorToken.totalSupply() + _i);
+      uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+      _expectedPayTokenAddedToContract += _tokenPrice;
+      _expectedTotalPricePaidByBuyer += _totalPrice;
+      _expectedPayTokenEarnedByCreator += _creatorFee;
+      _expectedPayTokenEarnedByAdmin += _adminFee;
+    }
+
+    deal(address(payToken), _buyer, _expectedTotalPricePaidByBuyer);
+    vm.startPrank(_buyer);
+    payToken.approve(address(creatorToken), type(uint256).max);
+    creatorToken.bulkBuy(_numTokensToBuy, _expectedTotalPricePaidByBuyer);
+    vm.stopPrank();
+
+    for (uint256 _i; _i < _numTokensToBuy; _i++) {
+      assertEq(creatorToken.ownerOf(creatorToken.lastId() - _i), _buyer);
+    }
+    assertEq(creatorToken.balanceOf(_buyer), _originalBuyerBalanceOfCreatorTokens + _numTokensToBuy);
+    assertEq(
+      payToken.balanceOf(address(creatorToken)),
+      _originalPayTokenBalanceOfCreatorTokenContract + _expectedPayTokenAddedToContract
+    );
+    assertEq(payToken.balanceOf(_buyer), _originalPayTokenBalanceOfBuyer);
+    assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply + _numTokensToBuy);
+    assertEq(
+      payToken.balanceOf(creator),
+      _originalPayTokenBalanceOfCreator + _expectedPayTokenEarnedByCreator
+    );
+    assertEq(
+      payToken.balanceOf(admin), _originalPayTokenBalanceOfAdmin + _expectedPayTokenEarnedByAdmin
+    );
+  }
+
   function test_RevertIf_PriceExceedsMaxPayment(address _buyer, uint256 _maxPayment) public {
     vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
 
@@ -583,6 +635,16 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
       assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
       sellAToken(_seller, _tokenIds[_i]);
     }
+  }
+
+  function test_PriceForTokenIdIsCorrect(uint256 _tokenId) public {
+    uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
+    _tokenId = bound(_tokenId, _preMintOffset + 1, 1000);
+
+    (uint256 _tokenPrice,,) = creatorToken.priceForTokenId(_tokenId);
+    uint256 _expectedTokenPrice = bondingCurve.priceForTokenNumber(_tokenId - _preMintOffset);
+
+    assertEq(_tokenPrice, _expectedTokenPrice);
   }
 }
 
