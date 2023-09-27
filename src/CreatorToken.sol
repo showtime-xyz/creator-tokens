@@ -99,10 +99,7 @@ contract CreatorToken is ERC721 {
   }
 
   function buy(uint256 _maxPayment) public {
-    uint256 _totalPrice = _buy(msg.sender);
-    if (_totalPrice > _maxPayment) {
-      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
-    }
+    buy(msg.sender, _maxPayment);
   }
 
   function buy(address _to, uint256 _maxPayment) public {
@@ -113,13 +110,7 @@ contract CreatorToken is ERC721 {
   }
 
   function bulkBuy(uint256 _numOfTokens, uint256 _maxPayment) public {
-    uint256 _totalPrice;
-    for (uint256 _i = 0; _i < _numOfTokens; _i++) {
-      _totalPrice += _buy(msg.sender);
-    }
-    if (_totalPrice > _maxPayment) {
-      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
-    }
+    bulkBuy(msg.sender, _numOfTokens, _maxPayment);
   }
 
   function bulkBuy(address _to, uint256 _numOfTokens, uint256 _maxPayment) public {
@@ -207,7 +198,8 @@ contract CreatorToken is ERC721 {
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
-    (_tokenPrice, _creatorFee, _adminFee) = priceForTokenId(totalSupply + 1);
+    _tokenPrice = BONDING_CURVE.priceForTokenNumber((totalSupply + 1) - _preMintOffset());
+    (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 
   function nextSellPrice()
@@ -215,7 +207,8 @@ contract CreatorToken is ERC721 {
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
-    (_tokenPrice, _creatorFee, _adminFee) = priceForTokenId(totalSupply);
+    _tokenPrice = BONDING_CURVE.priceForTokenNumber(totalSupply - _preMintOffset());
+    (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 
   function priceForTokenId(uint256 _tokenId)
@@ -223,7 +216,13 @@ contract CreatorToken is ERC721 {
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
-    _tokenPrice = BONDING_CURVE.priceForTokenNumber(_tokenId - _preMintOffset());
+    if (_tokenId >= lastId) {
+      _tokenPrice =
+        BONDING_CURVE.priceForTokenNumber(totalSupply - _preMintOffset() + (_tokenId - lastId));
+    } else {
+      _tokenPrice =
+        BONDING_CURVE.priceForTokenNumber(totalSupply - _preMintOffset() + (lastId - _tokenId));
+    }
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 
