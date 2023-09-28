@@ -373,6 +373,35 @@ abstract contract Buying is CreatorTokenTest {
     creatorToken.buy(_maxPayment);
     vm.stopPrank();
   }
+
+  function test_RevertIf_BulkBuyPriceExceedsMaxPayment(address _buyer, uint256 _numTokensToBuy)
+    public
+  {
+    _assumeSafeBuyer(_buyer);
+    _numTokensToBuy = bound(_numTokensToBuy, 1, 100);
+
+    uint256 _expectedTotalPricePaidByBuyer;
+
+    for (uint256 _i = 1; _i <= _numTokensToBuy; _i++) {
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) =
+        creatorToken.priceForTokenId(creatorToken.totalSupply() + _i);
+      uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+      _expectedTotalPricePaidByBuyer += _totalPrice;
+    }
+
+    deal(address(payToken), _buyer, _expectedTotalPricePaidByBuyer);
+    vm.startPrank(_buyer);
+    payToken.approve(address(creatorToken), type(uint256).max);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__MaxPaymentExceeded.selector,
+        _expectedTotalPricePaidByBuyer,
+        _expectedTotalPricePaidByBuyer - 1
+      )
+    );
+    creatorToken.bulkBuy(_numTokensToBuy, _expectedTotalPricePaidByBuyer - 1);
+    vm.stopPrank();
+  }
 }
 
 abstract contract Selling is CreatorTokenTest {
