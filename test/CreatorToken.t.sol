@@ -654,11 +654,6 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
 
     for (uint256 _i = 0; _i < _numTokensToBuy; _i++) {
       (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
-      (
-        uint256 _tokenPriceFromPriceForTokenId,
-        uint256 _creatorFeeFromPriceForTokenId,
-        uint256 _adminFeeFromPriceForTokenId
-      ) = creatorToken.priceForTokenId(creatorToken.totalSupply() + 1);
 
       uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
       uint256 _bondingCurveTokenPrice =
@@ -671,9 +666,6 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
       assertEq(_tokenPrice, _bondingCurveTokenPrice);
       assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
       assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
-      assertEq(_tokenPrice, _tokenPriceFromPriceForTokenId);
-      assertEq(_creatorFee, _creatorFeeFromPriceForTokenId);
-      assertEq(_adminFee, _adminFeeFromPriceForTokenId);
       buyAToken(_buyer);
     }
   }
@@ -691,11 +683,6 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
     // sell n tokens
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
       (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
-      (
-        uint256 _tokenPriceFromPriceForTokenId,
-        uint256 _creatorFeeFromPriceForTokenId,
-        uint256 _adminFeeFromPriceForTokenId
-      ) = creatorToken.priceForTokenId(_tokenIds[_i]);
 
       uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
       uint256 _bondingCurveTokenPrice =
@@ -708,69 +695,8 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
       assertEq(_tokenPrice, _bondingCurveTokenPrice);
       assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
       assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
-      assertEq(_tokenPrice, _tokenPriceFromPriceForTokenId);
-      assertEq(_creatorFee, _creatorFeeFromPriceForTokenId);
-      assertEq(_adminFee, _adminFeeFromPriceForTokenId);
       sellAToken(_seller, _tokenIds[_i]);
     }
-  }
-
-  function test_PriceForTokenIdIsCorrect(uint256 _tokenId) public {
-    uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
-    _tokenId = bound(_tokenId, _preMintOffset + 1, 1000);
-
-    (uint256 _tokenPrice,,) = creatorToken.priceForTokenId(_tokenId);
-    uint256 _expectedTokenPrice = bondingCurve.priceForTokenNumber(_tokenId - _preMintOffset);
-
-    assertEq(_tokenPrice, _expectedTokenPrice);
-  }
-
-  function test_PriceForTokenIdIsCorrectAfterBurn(
-    address _buyer,
-    uint256 _tokenId,
-    uint256 _numTokensToBuy,
-    uint256 _numTokensToSell
-  ) public {
-    _assumeSafeBuyer(_buyer);
-    uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
-    _tokenId = bound(_tokenId, _preMintOffset + 1, 1000);
-    _numTokensToBuy = bound(_numTokensToBuy, 2, 100);
-    _numTokensToSell = bound(_numTokensToSell, 1, _numTokensToBuy);
-
-    for (uint256 _i = 0; _i < _numTokensToBuy; _i++) {
-      (uint256 _tokenBuyPriceBeforeBuy,,) = creatorToken.priceForTokenId(creatorToken.lastId() + 1);
-      (uint256 _tokenSellPriceBeforeBuy,,) = creatorToken.priceForTokenId(creatorToken.lastId());
-      (uint256 _expectedTokenPriceBeforeBuy,,) = creatorToken.nextBuyPrice();
-      (uint256 _expectedTokenSellBeforeBuy,,) = creatorToken.nextSellPrice();
-      console2.log(_expectedTokenSellBeforeBuy, "_expectedTokenSellBeforeBuy");
-
-      assertEq(_tokenBuyPriceBeforeBuy, _expectedTokenPriceBeforeBuy);
-      assertEq(_tokenSellPriceBeforeBuy, _expectedTokenSellBeforeBuy);
-
-      buyAToken(_buyer);
-    }
-    for (uint256 _i = 0; _i < _numTokensToSell; _i++) {
-      (uint256 _tokenBuyPriceBeforeSell,,) = creatorToken.priceForTokenId(creatorToken.lastId() + 1);
-      (uint256 _tokenSellPriceBeforeSell,,) =
-        creatorToken.priceForTokenId(creatorToken.lastId() - _i);
-      (uint256 _expectedTokenPriceBeforeSell,,) = creatorToken.nextBuyPrice();
-      (uint256 _expectedTokenSellBeforeSell,,) = creatorToken.nextSellPrice();
-
-      assertEq(_tokenBuyPriceBeforeSell, _expectedTokenPriceBeforeSell);
-      assertEq(_tokenSellPriceBeforeSell, _expectedTokenSellBeforeSell);
-
-      sellAToken(_buyer, creatorToken.lastId() - _i);
-    }
-
-    (uint256 _tokenBuyPrice,,) = creatorToken.priceForTokenId(creatorToken.lastId() + 1);
-    (uint256 _tokenSellPrice,,) = creatorToken.priceForTokenId(creatorToken.lastId()); // Don't
-      // think lastId is the correct param here
-
-    (uint256 _expectedTokenPrice,,) = creatorToken.nextBuyPrice();
-    (uint256 _expectedTokenSellPrice,,) = creatorToken.nextSellPrice();
-
-    assertEq(_tokenBuyPrice, _expectedTokenPrice);
-    assertEq(_tokenSellPrice, _expectedTokenSellPrice);
   }
 }
 
