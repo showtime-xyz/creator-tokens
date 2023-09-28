@@ -259,9 +259,12 @@ abstract contract Buying is CreatorTokenTest {
     uint256 _expectedPayTokenEarnedByCreator;
     uint256 _expectedPayTokenEarnedByAdmin;
 
+    uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
+
     for (uint256 _i = 1; _i <= _numTokensToBuy; _i++) {
-      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) =
-        creatorToken.priceForTokenId(creatorToken.totalSupply() + _i);
+      (uint256 _tokenPrice) =
+        bondingCurve.priceForTokenNumber((creatorToken.totalSupply() + _i) - _preMintOffset);
+      (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(_tokenPrice);
       uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
       _expectedPayTokenAddedToContract += _tokenPrice;
       _expectedTotalPricePaidByBuyer += _totalPrice;
@@ -318,8 +321,10 @@ abstract contract Buying is CreatorTokenTest {
     uint256 _expectedPayTokenEarnedByAdmin;
 
     for (uint256 _i = 1; _i <= _numTokensToBuy; _i++) {
-      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) =
-        creatorToken.priceForTokenId(creatorToken.totalSupply() + _i);
+      (uint256 _tokenPrice) = bondingCurve.priceForTokenNumber(
+        (creatorToken.totalSupply() + _i) - (referrer == address(0) ? 1 : 2)
+      );
+      (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(_tokenPrice);
       uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
       _expectedPayTokenAddedToContract += _tokenPrice;
       _expectedTotalPricePaidByBuyer += _totalPrice;
@@ -381,10 +386,12 @@ abstract contract Buying is CreatorTokenTest {
     _numTokensToBuy = bound(_numTokensToBuy, 1, 100);
 
     uint256 _expectedTotalPricePaidByBuyer;
+    uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
 
     for (uint256 _i = 1; _i <= _numTokensToBuy; _i++) {
-      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) =
-        creatorToken.priceForTokenId(creatorToken.totalSupply() + _i);
+      (uint256 _tokenPrice) =
+        bondingCurve.priceForTokenNumber((creatorToken.totalSupply() + _i) - _preMintOffset);
+      (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(_tokenPrice);
       uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
       _expectedTotalPricePaidByBuyer += _totalPrice;
     }

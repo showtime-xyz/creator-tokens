@@ -211,21 +211,6 @@ contract CreatorToken is ERC721 {
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 
-  function priceForTokenId(uint256 _tokenId)
-    public
-    view
-    returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
-  {
-    if (_tokenId >= lastId) {
-      _tokenPrice =
-        BONDING_CURVE.priceForTokenNumber(totalSupply - _preMintOffset() + (_tokenId - lastId));
-    } else {
-      _tokenPrice =
-        BONDING_CURVE.priceForTokenNumber(totalSupply - _preMintOffset() + (lastId - _tokenId));
-    }
-    (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
-  }
-
   function calculateFees(uint256 _price)
     public
     view
