@@ -264,9 +264,58 @@ abstract contract Buying is CreatorTokenTest {
 }
 
 abstract contract Selling is CreatorTokenTest {
-  function test_sellAToken(address _seller) public {
+  function test_SellAToken(address _seller) public {
     buyAToken(_seller);
     sellAToken(_seller, creatorToken.lastId());
+  }
+
+  function test_BulkSell(address _seller, uint256 _numTokensToBuyAndSell) public {
+    _assumeSafeBuyer(_seller);
+    _numTokensToBuyAndSell = bound(_numTokensToBuyAndSell, 1, 100);
+    uint256[] memory _tokenIds = new uint256[](_numTokensToBuyAndSell);
+
+    uint256 _originalCreatorTokenBalanceOfSeller = creatorToken.balanceOf(_seller);
+    uint256 _originalPayTokenBalanceOfCreatorTokenContract =
+      payToken.balanceOf(address(creatorToken));
+    uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
+    uint256 _expectedNetProceeds;
+    uint256 _expectedPayTokenToBeEarnedByCreator;
+    uint256 _expectedPayTokenToBeEarnedByAdmin;
+
+    // buy n tokens
+    for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
+      buyAToken(_seller);
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      _expectedNetProceeds += _tokenPrice - _creatorFee - _adminFee;
+      _expectedPayTokenToBeEarnedByCreator += _creatorFee;
+      _expectedPayTokenToBeEarnedByAdmin += _adminFee;
+      _tokenIds[_i] = (creatorToken.lastId());
+    }
+    require(creatorToken.balanceOf(_seller) == _numTokensToBuyAndSell);
+    uint256 _originalPayTokenBalanceOfSeller = payToken.balanceOf(_seller);
+    uint256 _originalPayTokenBalanceOfCreator = payToken.balanceOf(creator);
+    uint256 _originalPayTokenBalanceOfAdmin = payToken.balanceOf(admin);
+
+    vm.prank(_seller);
+    (uint256 _netProceeds) = creatorToken.bulkSell(_tokenIds);
+
+    assertEq(creatorToken.balanceOf(_seller), _originalCreatorTokenBalanceOfSeller);
+    assertEq(creatorToken.balanceOf(_seller), 0);
+    assertEq(
+      payToken.balanceOf(address(creatorToken)), _originalPayTokenBalanceOfCreatorTokenContract
+    );
+    assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply);
+
+    assertEq(_netProceeds, _expectedNetProceeds);
+    assertEq(payToken.balanceOf(_seller), _originalPayTokenBalanceOfSeller + _expectedNetProceeds);
+    assertEq(
+      payToken.balanceOf(creator),
+      _originalPayTokenBalanceOfCreator + _expectedPayTokenToBeEarnedByCreator
+    );
+    assertEq(
+      payToken.balanceOf(admin),
+      _originalPayTokenBalanceOfAdmin + _expectedPayTokenToBeEarnedByAdmin
+    );
   }
 
   function test_LastTokenOnBondingCurveCostsTheBasePrice(address _seller) public {

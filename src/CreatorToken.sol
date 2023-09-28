@@ -106,12 +106,31 @@ contract CreatorToken is ERC721 {
     _buy(_to, _maxPayment);
   }
 
-  function sell(uint256 _tokenId) public {
-    _sell(_tokenId, 0); // TODO: consider how to test this is curried correctly
+  function sell(uint256 _tokenId) public returns (uint256 _netProceeds) {
+    _netProceeds = sell(_tokenId, 0); // TODO: consider how to test this is curried correctly
   }
 
-  function sell(uint256 _tokenId, uint256 _minAcceptedPrice) public {
-    _sell(_tokenId, _minAcceptedPrice);
+  function sell(uint256 _tokenId, uint256 _minAcceptedPrice) public returns (uint256 _netProceeds) {
+    _netProceeds = _sell(_tokenId);
+    if (_netProceeds < _minAcceptedPrice) {
+      revert CreatorToken__MinAcceptedPriceExceeded(_netProceeds, _minAcceptedPrice);
+    }
+  }
+
+  function bulkSell(uint256[] memory _tokenIds) public returns (uint256 _netProceeds) {
+    _netProceeds = bulkSell(_tokenIds, 0);
+  }
+
+  function bulkSell(uint256[] memory _tokenIds, uint256 _minAcceptedPrice)
+    public
+    returns (uint256 _netProceeds)
+  {
+    for (uint256 i = 0; i < _tokenIds.length; i++) {
+      _netProceeds += _sell(_tokenIds[i]);
+    }
+    if (_netProceeds < _minAcceptedPrice) {
+      revert CreatorToken__MinAcceptedPriceExceeded(_netProceeds, _minAcceptedPrice);
+    }
   }
 
   function updateCreator(address _newCreator) public isNotAddressZero(_newCreator) {
@@ -149,7 +168,7 @@ contract CreatorToken is ERC721 {
     payToken.safeTransferFrom(msg.sender, admin, _adminFee);
   }
 
-  function _sell(uint256 _tokenId, uint256 _minAcceptedPrice) internal whenNotPaused {
+  function _sell(uint256 _tokenId) internal whenNotPaused returns (uint256 _netProceeds) {
     if (msg.sender != ownerOf(_tokenId)) {
       revert CreatorToken__CallerIsNotOwner(_tokenId, ownerOf(_tokenId), msg.sender);
     }
@@ -159,11 +178,7 @@ contract CreatorToken is ERC721 {
     if (_isOneOfLastTokens) revert CreatorToken__LastTokensCannotBeSold(totalSupply);
 
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextSellPrice();
-    uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
-
-    if (_netProceeds < _minAcceptedPrice) {
-      revert CreatorToken__MinAcceptedPriceExceeded(_netProceeds, _minAcceptedPrice);
-    }
+    _netProceeds = _tokenPrice - _creatorFee - _adminFee;
 
     transferFrom(msg.sender, address(this), _tokenId);
     _burnAndDecrement(_tokenId);
