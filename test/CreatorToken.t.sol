@@ -262,6 +262,8 @@ abstract contract Buying is CreatorTokenTest {
     uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
 
     for (uint256 _i = 1; _i <= _numTokensToBuy; _i++) {
+      // Determine the total expected payment by asking the bonding curve for token price and
+      // calculating the fees manually.
       (uint256 _tokenPrice) =
         bondingCurve.priceForTokenNumber((creatorToken.totalSupply() + _i) - _preMintOffset);
       (uint256 _creatorFee, uint256 _adminFee) = creatorToken.calculateFees(_tokenPrice);
@@ -321,6 +323,8 @@ abstract contract Buying is CreatorTokenTest {
     uint256 _expectedPayTokenEarnedByAdmin;
 
     for (uint256 _i = 1; _i <= _numTokensToBuy; _i++) {
+      // Determine the total expected payment by asking the bonding curve for token price and
+      // calculating the fees manually.
       (uint256 _tokenPrice) = bondingCurve.priceForTokenNumber(
         (creatorToken.totalSupply() + _i) - (referrer == address(0) ? 1 : 2)
       );

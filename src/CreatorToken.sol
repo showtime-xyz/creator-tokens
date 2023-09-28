@@ -98,23 +98,25 @@ contract CreatorToken is ERC721 {
     if (_referrer != address(0)) _mintAndIncrement(_referrer);
   }
 
-  function buy(uint256 _maxPayment) public {
-    buy(msg.sender, _maxPayment);
+  function buy(uint256 _maxPayment) public returns (uint256 _totalPrice) {
+    _totalPrice = buy(msg.sender, _maxPayment);
   }
 
-  function buy(address _to, uint256 _maxPayment) public {
-    uint256 _totalPrice = _buy(_to);
+  function buy(address _to, uint256 _maxPayment) public returns (uint256 _totalPrice) {
+    _totalPrice = _buy(_to);
     if (_totalPrice > _maxPayment) {
       revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
     }
   }
 
-  function bulkBuy(uint256 _numOfTokens, uint256 _maxPayment) public {
-    bulkBuy(msg.sender, _numOfTokens, _maxPayment);
+  function bulkBuy(uint256 _numOfTokens, uint256 _maxPayment) public returns (uint256 _totalPrice) {
+    _totalPrice = bulkBuy(msg.sender, _numOfTokens, _maxPayment);
   }
 
-  function bulkBuy(address _to, uint256 _numOfTokens, uint256 _maxPayment) public {
-    uint256 _totalPrice;
+  function bulkBuy(address _to, uint256 _numOfTokens, uint256 _maxPayment)
+    public
+    returns (uint256 _totalPrice)
+  {
     for (uint256 _i = 0; _i < _numOfTokens; _i++) {
       _totalPrice += _buy(_to);
     }
