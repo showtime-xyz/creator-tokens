@@ -339,6 +339,35 @@ abstract contract Selling is CreatorTokenTest {
     vm.stopPrank();
   }
 
+  function test_RevertIf_BulkSellMinAcceptedPriceExceeded(
+    address _seller,
+    uint256 _numTokensToBuyAndSell
+  ) public {
+    _assumeSafeBuyer(_seller);
+    _numTokensToBuyAndSell = bound(_numTokensToBuyAndSell, 1, 100);
+    uint256[] memory _tokenIds = new uint256[](_numTokensToBuyAndSell);
+    uint256 _expectedNetProceeds;
+
+    // buy n tokens
+    for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
+      buyAToken(_seller);
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      _expectedNetProceeds += _tokenPrice - _creatorFee - _adminFee;
+      _tokenIds[_i] = (creatorToken.lastId());
+    }
+    require(creatorToken.balanceOf(_seller) == _numTokensToBuyAndSell);
+
+    vm.prank(_seller);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__MinAcceptedPriceExceeded.selector,
+        _expectedNetProceeds,
+        _expectedNetProceeds + 1
+      )
+    );
+    creatorToken.bulkSell(_tokenIds, _expectedNetProceeds + 1);
+  }
+
   function test_RevertIf_MinAcceptedPriceIsHigherThanNetProceeds(
     address _seller,
     uint256 _minAcceptedPrice
