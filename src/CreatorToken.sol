@@ -98,12 +98,31 @@ contract CreatorToken is ERC721 {
     if (_referrer != address(0)) _mintAndIncrement(_referrer);
   }
 
-  function buy(uint256 _maxPayment) public {
-    _buy(msg.sender, _maxPayment);
+  function buy(uint256 _maxPayment) public returns (uint256 _totalPrice) {
+    _totalPrice = buy(msg.sender, _maxPayment);
   }
 
-  function buy(address _to, uint256 _maxPayment) public {
-    _buy(_to, _maxPayment);
+  function buy(address _to, uint256 _maxPayment) public returns (uint256 _totalPrice) {
+    _totalPrice = _buy(_to);
+    if (_totalPrice > _maxPayment) {
+      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
+    }
+  }
+
+  function bulkBuy(uint256 _numOfTokens, uint256 _maxPayment) public returns (uint256 _totalPrice) {
+    _totalPrice = bulkBuy(msg.sender, _numOfTokens, _maxPayment);
+  }
+
+  function bulkBuy(address _to, uint256 _numOfTokens, uint256 _maxPayment)
+    public
+    returns (uint256 _totalPrice)
+  {
+    for (uint256 _i = 0; _i < _numOfTokens; _i++) {
+      _totalPrice += _buy(_to);
+    }
+    if (_totalPrice > _maxPayment) {
+      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
+    }
   }
 
   function sell(uint256 _tokenId) public {
@@ -135,13 +154,10 @@ contract CreatorToken is ERC721 {
     creatorTokenURI = _newTokenURI;
   }
 
-  function _buy(address _to, uint256 _maxPayment) internal whenNotPaused {
+  function _buy(address _to) internal whenNotPaused returns (uint256 _totalPrice) {
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextBuyPrice();
-    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+    _totalPrice = _tokenPrice + _creatorFee + _adminFee;
 
-    if (_totalPrice > _maxPayment) {
-      revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
-    }
     _mintAndIncrement(_to);
     emit Bought(msg.sender, _to, lastId, _tokenPrice, _creatorFee, _adminFee);
     payToken.safeTransferFrom(msg.sender, address(this), _tokenPrice);
