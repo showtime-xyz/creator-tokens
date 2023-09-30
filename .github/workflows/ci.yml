@@ -9,6 +9,7 @@ on:
 
 env:
   FOUNDRY_PROFILE: ci
+  BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
 
 jobs:
   build:
