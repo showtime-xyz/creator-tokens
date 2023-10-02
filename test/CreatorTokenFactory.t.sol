@@ -30,7 +30,9 @@ contract CreatorTokenFactoryTest is Test {
   uint256 showtimeSignerKey;
 
   event CreatorTokenDeployed(
-    CreatorToken indexed creatorToken, CTBondingCurve indexed bondingCurve, CreatorTokenFactory.DeploymentConfig config
+    CreatorToken indexed creatorToken,
+    CTBondingCurve indexed bondingCurve,
+    CreatorTokenFactory.DeploymentConfig config
   );
 
   function setUp() public {
@@ -146,8 +148,10 @@ contract TokenDeployment is CreatorTokenFactoryTest {
     bytes memory _signature = _showtimeSignature(_configDigest);
 
     // hardcoded, pre-calculated addresses for the test config, so we can expect the event emissions
-    CreatorToken preCalculatedTokenAddress = CreatorToken(0x037eDa3aDB1198021A9b2e88C22B464fD38db3f3);
-    CTBondingCurve preCalculatedBondingCurve = CTBondingCurve(0x104fBc016F4bb334D775a19E8A6510109AC63E00);
+    CreatorToken preCalculatedTokenAddress =
+      CreatorToken(0x037eDa3aDB1198021A9b2e88C22B464fD38db3f3);
+    CTBondingCurve preCalculatedBondingCurve =
+      CTBondingCurve(0x104fBc016F4bb334D775a19E8A6510109AC63E00);
 
     vm.expectEmit(true, true, true, true);
     emit CreatorTokenDeployed(preCalculatedTokenAddress, preCalculatedBondingCurve, _config);
@@ -169,7 +173,7 @@ contract TokenDeployment is CreatorTokenFactoryTest {
     _assertValidDeployment(_config, _deployedToken);
   }
 
-  function test_RevertsIfTheSignerIsNotRegistered(
+  function test_RevertIf_TheSignerIsNotRegistered(
     CreatorTokenFactory.DeploymentConfig memory _config,
     Attestation memory _attestation,
     string memory _badSignerSeed
@@ -187,7 +191,7 @@ contract TokenDeployment is CreatorTokenFactoryTest {
     factory.deploy(_attestation, _config, _signature);
   }
 
-  function test_RevertsIfTheAttestationHasBeenModified(
+  function test_RevertIf_TheAttestationHasBeenModified(
     CreatorTokenFactory.DeploymentConfig memory _config,
     Attestation memory _attestation,
     address _mutatedBeneficiary
@@ -204,7 +208,7 @@ contract TokenDeployment is CreatorTokenFactoryTest {
     factory.deploy(_attestation, _config, _signature);
   }
 
-  function test_RevertsIfNonceIsReused(
+  function test_RevertIf_NonceIsReused(
     CreatorTokenFactory.DeploymentConfig memory _config,
     Attestation memory _attestation
   ) public {
@@ -221,7 +225,7 @@ contract TokenDeployment is CreatorTokenFactoryTest {
     factory.deploy(_attestation, _config, _signature);
   }
 
-  function test_RevertsIfNonceIsWrong(
+  function test_RevertIf_NonceIsWrong(
     CreatorTokenFactory.DeploymentConfig memory _config,
     Attestation memory _attestation,
     uint256 _badNonce
