@@ -8,7 +8,7 @@ import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {CTBondingCurve} from "src/CTBondingCurve.sol";
 import {CreatorTokenFactory, Attestation} from "src/CreatorTokenFactory.sol";
 import {
-  ITestableShowTimeVerifier,
+  ITestableShowtimeVerifier,
   IShowtimeVerifier
 } from "test/interfaces/ITestableShowtimeVerifier.sol";
 
@@ -17,8 +17,8 @@ contract CreatorTokenFactoryTest is Test {
   CreatorTokenFactory factory;
 
   // The production showtime verifier contract deployed on Base mainnet
-  ITestableShowTimeVerifier VERIFIER =
-    ITestableShowTimeVerifier(0x481273EB2B6A21e918f6952A6c53C08691FE768F);
+  ITestableShowtimeVerifier VERIFIER =
+    ITestableShowtimeVerifier(0x481273EB2B6A21e918f6952A6c53C08691FE768F);
 
   // Copied from ShowtimeVerifier implementation
   //https://github.com/showtime-xyz/showtime-contracts-v2/blob/173bba71afd6b032874774f92b55d1c053cf386e/src/ShowtimeVerifier.sol#L18
