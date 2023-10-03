@@ -309,12 +309,15 @@ abstract contract Selling is CreatorTokenTest {
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
       buyAToken(_seller);
       (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
-      _expectedNetProceeds += _tokenPrice - _creatorFee - _adminFee;
+      _expectedNetProceeds += (_tokenPrice - _creatorFee - _adminFee);
       _expectedPayTokenToBeEarnedByCreator += _creatorFee;
       _expectedPayTokenToBeEarnedByAdmin += _adminFee;
       _tokenIds[_i] = (creatorToken.lastId());
     }
-    require(creatorToken.balanceOf(_seller) == _numTokensToBuyAndSell);
+    require(
+      creatorToken.balanceOf(_seller) == _numTokensToBuyAndSell,
+      "Broken test invariant: seller does not own correct number of tokens to sell."
+    );
     uint256 _originalPayTokenBalanceOfSeller = payToken.balanceOf(_seller);
     uint256 _originalPayTokenBalanceOfCreator = payToken.balanceOf(creator);
     uint256 _originalPayTokenBalanceOfAdmin = payToken.balanceOf(admin);

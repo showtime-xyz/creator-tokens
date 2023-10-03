@@ -125,8 +125,8 @@ contract CreatorToken is ERC721 {
     public
     returns (uint256 _netProceeds)
   {
-    for (uint256 i = 0; i < _tokenIds.length; i++) {
-      _netProceeds += _sell(_tokenIds[i]);
+    for (uint256 _i = 0; _i < _tokenIds.length; _i++) {
+      _netProceeds += _sell(_tokenIds[_i]);
     }
     if (_netProceeds < _minAcceptedPrice) {
       revert CreatorToken__MinAcceptedPriceExceeded(_netProceeds, _minAcceptedPrice);
