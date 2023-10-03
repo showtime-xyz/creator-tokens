@@ -16,6 +16,7 @@
 [profile.lite]
   fuzz = { runs = 50 }
   invariant = { runs = 10 }
+  optimizer = false
 
 [rpc_endpoints]
   base = "${BASE_RPC_URL}"

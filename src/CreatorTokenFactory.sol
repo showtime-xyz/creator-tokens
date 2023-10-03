@@ -57,19 +57,25 @@ contract CreatorTokenFactory {
   }
 
   function encode(DeploymentConfig memory _config) public pure returns (bytes memory) {
+    // We nest these calls to `abi.encodePacked` to avoid stack too deep errors which
+    // crop up when we send all the variables to abi.encodePacked at once. This occurs only
+    // when the optimizer is off. When the optimizer is on it should (?) remove the nested
+    // calls anyway. Either way, the result from the function should be the same.
     return abi.encodePacked(
-      keccak256(bytes(_config.name)),
-      keccak256(bytes(_config.symbol)),
-      keccak256(bytes(_config.tokenURI)),
-      uint256(uint160(_config.creator)),
-      _config.creatorFee,
-      uint256(uint160(_config.admin)),
-      _config.adminFee,
-      uint256(uint160(_config.referrer)),
-      uint256(uint160(address(_config.payToken))),
-      uint256(_config.basePrice),
-      uint256(_config.linearPriceSlope),
-      uint256(_config.inflectionPrice),
+      abi.encodePacked(
+        keccak256(bytes(_config.name)),
+        keccak256(bytes(_config.symbol)),
+        keccak256(bytes(_config.tokenURI)),
+        uint256(uint160(_config.creator)),
+        _config.creatorFee,
+        uint256(uint160(_config.admin)),
+        _config.adminFee,
+        uint256(uint160(_config.referrer)),
+        uint256(uint160(address(_config.payToken))),
+        uint256(_config.basePrice),
+        uint256(_config.linearPriceSlope),
+        uint256(_config.inflectionPrice)
+      ),
       uint256(_config.inflectionPoint),
       _config.attestationDigest
     );
