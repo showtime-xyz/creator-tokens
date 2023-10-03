@@ -77,26 +77,49 @@ abstract contract CreatorTokenTest is Test {
       payToken.balanceOf(address(creatorToken));
     uint256 _originalBuyerBalanceOfCreatorTokens = creatorToken.balanceOf(_buyer);
     uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
-    uint256 _originalPayTokenBalanceOfBuyer = payToken.balanceOf(_buyer);
     uint256 _originalPayTokenBalanceOfCreator = payToken.balanceOf(creator);
     uint256 _originalPayTokenBalanceOfAdmin = payToken.balanceOf(admin);
     deal(address(payToken), _buyer, _totalPrice);
+    uint256 _originalPayTokenBalanceOfBuyer = payToken.balanceOf(_buyer);
 
     vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
     creatorToken.buy(_totalPrice);
     vm.stopPrank();
 
-    assertEq(creatorToken.balanceOf(_buyer), _originalBuyerBalanceOfCreatorTokens + 1);
-    assertEq(creatorToken.ownerOf(creatorToken.lastId()), _buyer);
+    assertEq(
+      creatorToken.balanceOf(_buyer),
+      _originalBuyerBalanceOfCreatorTokens + 1,
+      "buyAToken: Buyer balance of creator tokens mismatch"
+    );
+    assertEq(
+      creatorToken.ownerOf(creatorToken.lastId()), _buyer, "buyAToken: Buyer is not owner of token"
+    );
     assertEq(
       payToken.balanceOf(address(creatorToken)),
-      _originalPayTokenBalanceOfCreatorTokenContract + _tokenPrice
+      _originalPayTokenBalanceOfCreatorTokenContract + _tokenPrice,
+      "buyAToken: Creator token contract balance mismatch"
     );
-    assertEq(payToken.balanceOf(_buyer), _originalPayTokenBalanceOfBuyer);
-    assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply + 1);
-    assertEq(payToken.balanceOf(creator), _originalPayTokenBalanceOfCreator + _creatorFee);
-    assertEq(payToken.balanceOf(admin), _originalPayTokenBalanceOfAdmin + _adminFee);
+    assertEq(
+      payToken.balanceOf(_buyer),
+      _originalPayTokenBalanceOfBuyer - _totalPrice,
+      "buyAToken: Buyer pay token balance mismatch"
+    );
+    assertEq(
+      creatorToken.totalSupply(),
+      _originalCreatorTokenSupply + 1,
+      "buyAToken: Creator token supply mismatch"
+    );
+    assertEq(
+      payToken.balanceOf(creator),
+      _originalPayTokenBalanceOfCreator + _creatorFee,
+      "buyAToken: Creator balance mismatch"
+    );
+    assertEq(
+      payToken.balanceOf(admin),
+      _originalPayTokenBalanceOfAdmin + _adminFee,
+      "buyAToken: Admin balance mismatch"
+    );
   }
 
   function sellAToken(address _seller, uint256 _tokenId) public {
@@ -416,9 +439,105 @@ abstract contract Buying is CreatorTokenTest {
 }
 
 abstract contract Selling is CreatorTokenTest {
-  function test_sellAToken(address _seller) public {
+  function test_SellAToken(address _seller) public {
     buyAToken(_seller);
     sellAToken(_seller, creatorToken.lastId());
+  }
+
+  function test_BulkSell(address _seller, uint256 _numTokensToBuyAndSell) public {
+    _assumeSafeBuyer(_seller);
+    _numTokensToBuyAndSell = bound(_numTokensToBuyAndSell, 1, 100);
+    uint256[] memory _tokenIds = new uint256[](_numTokensToBuyAndSell);
+
+    uint256 _originalCreatorTokenBalanceOfSeller = creatorToken.balanceOf(_seller);
+    uint256 _originalPayTokenBalanceOfCreatorTokenContract =
+      payToken.balanceOf(address(creatorToken));
+    uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
+    uint256 _expectedNetProceeds;
+    uint256 _expectedPayTokenToBeEarnedByCreator;
+    uint256 _expectedPayTokenToBeEarnedByAdmin;
+
+    // buy n tokens
+    for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
+      buyAToken(_seller);
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      _expectedNetProceeds += (_tokenPrice - _creatorFee - _adminFee);
+      _expectedPayTokenToBeEarnedByCreator += _creatorFee;
+      _expectedPayTokenToBeEarnedByAdmin += _adminFee;
+      _tokenIds[_i] = (creatorToken.lastId());
+    }
+    require(
+      creatorToken.balanceOf(_seller) == _numTokensToBuyAndSell,
+      "Broken test invariant: seller does not own correct number of tokens to sell."
+    );
+    uint256 _originalPayTokenBalanceOfSeller = payToken.balanceOf(_seller);
+    uint256 _originalPayTokenBalanceOfCreator = payToken.balanceOf(creator);
+    uint256 _originalPayTokenBalanceOfAdmin = payToken.balanceOf(admin);
+
+    vm.prank(_seller);
+    (uint256 _netProceeds) = creatorToken.bulkSell(_tokenIds);
+
+    assertEq(creatorToken.balanceOf(_seller), _originalCreatorTokenBalanceOfSeller);
+    assertEq(
+      payToken.balanceOf(address(creatorToken)), _originalPayTokenBalanceOfCreatorTokenContract
+    );
+    assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply);
+
+    assertEq(_netProceeds, _expectedNetProceeds);
+    assertEq(payToken.balanceOf(_seller), _originalPayTokenBalanceOfSeller + _expectedNetProceeds);
+    assertEq(
+      payToken.balanceOf(creator),
+      _originalPayTokenBalanceOfCreator + _expectedPayTokenToBeEarnedByCreator
+    );
+    assertEq(
+      payToken.balanceOf(admin),
+      _originalPayTokenBalanceOfAdmin + _expectedPayTokenToBeEarnedByAdmin
+    );
+  }
+
+  function test_BulkSellAfterOthersBuyAndSell(
+    address _seller,
+    address _secondSeller,
+    uint256 _numTokensToBuyAndSell
+  ) public {
+    _assumeSafeBuyer(_seller);
+    _assumeSafeBuyer(_secondSeller);
+    vm.assume(_seller != _secondSeller);
+    _numTokensToBuyAndSell = bound(_numTokensToBuyAndSell, 1, 100);
+    uint256[] memory _tokenIds = new uint256[](_numTokensToBuyAndSell);
+
+    uint256 _originalPayTokenBalanceOfCreatorTokenContract =
+      payToken.balanceOf(address(creatorToken));
+    uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
+    uint256 _expectedNetProceeds;
+
+    // buy n tokens
+    for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
+      buyAToken(_seller);
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      _expectedNetProceeds += _tokenPrice - _creatorFee - _adminFee;
+
+      _tokenIds[_i] = (creatorToken.lastId());
+
+      // _secondSeller buys and sells a token
+      buyAToken(_secondSeller);
+      sellAToken(_secondSeller, creatorToken.lastId());
+    }
+
+    require(creatorToken.balanceOf(_seller) == _numTokensToBuyAndSell);
+
+    vm.prank(_seller);
+    (uint256 _netProceeds) = creatorToken.bulkSell(_tokenIds);
+
+    assertEq(
+      payToken.balanceOf(address(creatorToken)), _originalPayTokenBalanceOfCreatorTokenContract
+    );
+    assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply);
+    assertEq(
+      _netProceeds,
+      _expectedNetProceeds,
+      "test_BulkSellAfterOthersBuyAndSell: Net proceeds mismatch"
+    );
   }
 
   function test_LastTokenOnBondingCurveCostsTheBasePrice(address _seller) public {
@@ -440,6 +559,35 @@ abstract contract Selling is CreatorTokenTest {
     emit Sold(_seller, creatorToken.lastId(), _tokenPrice, _creatorFee, _adminFee);
     creatorToken.sell(creatorToken.lastId(), _netProceeds);
     vm.stopPrank();
+  }
+
+  function test_RevertIf_BulkSellMinAcceptedPriceExceeded(
+    address _seller,
+    uint256 _numTokensToBuyAndSell
+  ) public {
+    _assumeSafeBuyer(_seller);
+    _numTokensToBuyAndSell = bound(_numTokensToBuyAndSell, 1, 100);
+    uint256[] memory _tokenIds = new uint256[](_numTokensToBuyAndSell);
+    uint256 _expectedNetProceeds;
+
+    // buy n tokens
+    for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
+      buyAToken(_seller);
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      _expectedNetProceeds += _tokenPrice - _creatorFee - _adminFee;
+      _tokenIds[_i] = (creatorToken.lastId());
+    }
+    require(creatorToken.balanceOf(_seller) == _numTokensToBuyAndSell);
+
+    vm.prank(_seller);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__MinAcceptedPriceExceeded.selector,
+        _expectedNetProceeds,
+        _expectedNetProceeds + 1
+      )
+    );
+    creatorToken.bulkSell(_tokenIds, _expectedNetProceeds + 1);
   }
 
   function test_RevertIf_MinAcceptedPriceIsHigherThanNetProceeds(
