@@ -2,11 +2,13 @@
 pragma solidity 0.8.20;
 
 import {ERC721} from "openzeppelin/token/ERC721/ERC721.sol";
+import {ERC721Royalty} from "openzeppelin/token/ERC721/extensions/ERC721Royalty.sol";
+
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IBondingCurve} from "src/interfaces/IBondingCurve.sol";
 
-contract CreatorToken is ERC721 {
+contract CreatorToken is ERC721Royalty {
   using SafeERC20 for IERC20;
 
   error CreatorToken__MaxFeeExceeded(uint256 fee, uint256 maxFee);
@@ -76,6 +78,7 @@ contract CreatorToken is ERC721 {
     string memory _tokenURI,
     address _creator,
     uint256 _creatorFee,
+    uint256 _creatorRoyalty,
     address _admin,
     uint256 _adminFee,
     address _referrer,
@@ -88,6 +91,7 @@ contract CreatorToken is ERC721 {
     creatorTokenURI = _tokenURI;
     creator = _creator;
     CREATOR_FEE_BIPS = _creatorFee;
+    _setDefaultRoyalty(address(_creator), uint96(_creatorRoyalty));
     admin = _admin;
     ADMIN_FEE_BIPS = _adminFee;
     REFERRER = _referrer;
