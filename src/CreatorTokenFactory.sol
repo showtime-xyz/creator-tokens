@@ -87,7 +87,7 @@ contract CreatorTokenFactory {
   }
 
   function deploy(
-    Attestation memory _attestation,
+    Attestation calldata _attestation,
     DeploymentConfig memory _config,
     bytes calldata _signature
   ) external returns (CreatorToken _creatorToken) {
@@ -117,7 +117,7 @@ contract CreatorTokenFactory {
   }
 
   /// @dev Matches implementation in ShowtimeVerifier
-  function _attestationDigest(Attestation memory _attestation) private view returns (bytes32) {
+  function _attestationDigest(Attestation calldata _attestation) private view returns (bytes32) {
     bytes memory encodedStruct = abi.encode(
       _attestation.beneficiary, _attestation.context, _attestation.nonce, _attestation.validUntil
     );
