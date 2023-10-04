@@ -41,18 +41,18 @@ contract CreatorTokenFactory {
   // TODO: dev comment explaining this is the domain separator from the verifier that technically
   // can change if chainId or
   // the verifier contract address change (latter can't happen if we keep the verifier hardcoded)
-  bytes32 private constant DOMAIN_SEPARATOR =
-    0x0c3be79fa914a526eb7e8ec47178f2ca6f81e90fb14c3e335600dc3ec6fa1a6f;
+  bytes32 private immutable DOMAIN_SEPARATOR;
 
   /// @dev Matches type hash in ShowtimeVerifier
   bytes32 private constant ATTESTATION_TYPE_HASH =
     keccak256("Attestation(address beneficiary,address context,uint256 nonce,uint256 validUntil)");
 
-  constructor(IShowtimeVerifier _verifier) {
+  constructor(IShowtimeVerifier _verifier, bytes32 _domainSeparator) {
     VERIFIER = _verifier;
+    DOMAIN_SEPARATOR = _domainSeparator;
   }
 
-  function domainSeparator() external pure returns (bytes32) {
+  function domainSeparator() external view returns (bytes32) {
     return DOMAIN_SEPARATOR;
   }
 
@@ -81,7 +81,7 @@ contract CreatorTokenFactory {
     );
   }
 
-  function createDigest(DeploymentConfig memory _config) external pure returns (bytes32 _digest) {
+  function createDigest(DeploymentConfig memory _config) external view returns (bytes32 _digest) {
     bytes32 _configHash = keccak256(abi.encodePacked(DEPLOY_TYPE_HASH, encode(_config)));
     _digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, _configHash));
   }
@@ -117,7 +117,7 @@ contract CreatorTokenFactory {
   }
 
   /// @dev Matches implementation in ShowtimeVerifier
-  function _attestationDigest(Attestation memory _attestation) private pure returns (bytes32) {
+  function _attestationDigest(Attestation memory _attestation) private view returns (bytes32) {
     bytes memory encodedStruct = abi.encode(
       _attestation.beneficiary, _attestation.context, _attestation.nonce, _attestation.validUntil
     );
