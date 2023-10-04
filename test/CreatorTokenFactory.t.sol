@@ -99,6 +99,7 @@ contract CreatorTokenFactoryTest is Test {
 contract DeploymentOfFactory is CreatorTokenFactoryTest {
   function test_FactoryIsConfiguredCorrectlyAtDeployment() public {
     assertEq(address(factory.VERIFIER()), address(VERIFIER));
+    assertEq(factory.domainSeparator(), VERIFIER.domainSeparator());
   }
 }
 
