@@ -11,6 +11,7 @@ import {
   ITestableShowtimeVerifier,
   IShowtimeVerifier
 } from "test/interfaces/ITestableShowtimeVerifier.sol";
+import {MockFailingVerifier} from "test/mocks/MockFailingVerifier.sol";
 
 contract CreatorTokenFactoryTest is Test {
   uint256 BASE_FORK_BLOCK = 4_522_844; // arbitrary as long as after verifier deployment
@@ -248,6 +249,22 @@ contract TokenDeployment is CreatorTokenFactoryTest {
         _attestation.nonce
       )
     );
+    factory.deploy(_attestation, _config, _signature);
+  }
+
+  function test_RevertIf_VerifierDoesNotVerifySignature(
+    CreatorTokenFactory.DeploymentConfig memory _config,
+    Attestation memory _attestation
+  ) public {
+    _boundAttestationAndDeploymentConfig(_attestation, _config);
+    bytes32 _configDigest = factory.createDigest(_config);
+    bytes memory _signature = _showtimeSignature(_configDigest);
+
+    // Deploy a mock verifier that will return false from its verify methods
+    IShowtimeVerifier _mockVerifier = new MockFailingVerifier();
+    factory = new CreatorTokenFactory(_mockVerifier);
+
+    vm.expectRevert(CreatorTokenFactory.CreatorTokenFactory__DeploymentNotVerified.selector);
     factory.deploy(_attestation, _config, _signature);
   }
 }
