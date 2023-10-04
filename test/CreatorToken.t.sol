@@ -23,7 +23,7 @@ abstract contract CreatorTokenTest is Test {
   string PAY_TOKEN_SYMBOL = "PAY";
   uint256 BASE_PAY_AMOUNT = 1e18; // Because our test token has 18 decimals
   uint256 creatorFee;
-  uint256 creatorRoyalty;
+  uint96 creatorRoyalty;
   uint256 adminFee;
   uint256 constant MAX_FEE = 2500; // matches private variable in CreatorToken
 
@@ -48,7 +48,7 @@ abstract contract CreatorTokenTest is Test {
   event TokenURIUpdated(string oldTokenURI, string newTokenURI);
 
   function setUp() public {
-    (address _referrer, uint256 _creatorFee, uint256 _creatorRoyalty, uint256 _adminFee) =
+    (address _referrer, uint256 _creatorFee, uint96 _creatorRoyalty, uint256 _adminFee) =
       deployConfig();
     referrer = _referrer;
     creatorFee = _creatorFee;
@@ -71,7 +71,7 @@ abstract contract CreatorTokenTest is Test {
     internal
     pure
     virtual
-    returns (address referrer, uint256 creatorFee, uint256 creatorRoyalty, uint256 adminFee);
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee);
 
   function buyAToken(address _buyer) public {
     _assumeSafeBuyer(_buyer);
@@ -142,6 +142,7 @@ abstract contract Deployment is CreatorTokenTest {
     assertEq(creatorToken.tokenURI(1), CREATOR_TOKEN_URI);
     assertEq(creatorToken.creator(), creator);
     assertEq(creatorToken.CREATOR_FEE_BIPS(), creatorFee);
+    assertEq(creatorToken.CREATOR_ROYALTY_BIPS(), creatorRoyalty);
     assertEq(creatorToken.admin(), admin);
     assertEq(creatorToken.ADMIN_FEE_BIPS(), adminFee);
     assertEq(creatorToken.REFERRER(), referrer);
@@ -780,6 +781,39 @@ abstract contract Royalty is CreatorTokenTest {
     bytes4 _INTERFACE_ID_ERC2981 = 0x2a55205a;
     assertTrue(IERC165(creatorToken).supportsInterface(_INTERFACE_ID_ERC2981));
   }
+
+  function test_RoyaltyInfo(uint256 _tokenId, uint256 _salePrice) public {
+    _tokenId = bound(_tokenId, 0, 100_000);
+    _salePrice = bound(_salePrice, 1, 10_000 ether);
+    (address _royaltyReceiver, uint256 _royaltyAmount) =
+      creatorToken.royaltyInfo(_tokenId, _salePrice);
+    assertEq(_royaltyReceiver, creator);
+    assertEq(_royaltyAmount, (_salePrice * creatorToken.CREATOR_ROYALTY_BIPS()) / 10_000);
+  }
+
+  function test_UpdateRoyaltyReceiverWhenCreatorIsUpdated(
+    address _newCreator,
+    address _secondNewCreator,
+    uint256 _tokenId,
+    uint256 _salePrice
+  ) public {
+    vm.assume(_newCreator != address(0) && _newCreator != creator);
+    vm.assume(_secondNewCreator != address(0) && _secondNewCreator != _newCreator);
+    _tokenId = bound(_tokenId, 0, 100_000);
+    _salePrice = bound(_salePrice, 1, 10_000 ether);
+
+    vm.prank(creator);
+    creatorToken.updateCreator(_newCreator);
+    assertEq(creatorToken.creator(), _newCreator);
+    (address _royaltyReceiver,) = creatorToken.royaltyInfo(_tokenId, _salePrice);
+    assertEq(_royaltyReceiver, _newCreator);
+
+    vm.prank(_newCreator);
+    creatorToken.updateCreator(_secondNewCreator);
+    assertEq(creatorToken.creator(), _secondNewCreator);
+    (address _secondRoyaltyReceiver,) = creatorToken.royaltyInfo(_tokenId, _salePrice);
+    assertEq(_secondRoyaltyReceiver, _newCreator);
+  }
 }
 
 contract ConfigWithReferrerAndStandardFees is
@@ -796,7 +830,7 @@ contract ConfigWithReferrerAndStandardFees is
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 creatorRoyalty, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
     return (address(0xaceface), 700, 1000, 300);
   }
@@ -816,7 +850,7 @@ contract ConfigWithReferrerAndMaxFees is
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 creatorRoyalty, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
     return (address(0xaceface), 2500, 5000, 2500);
   }
@@ -836,7 +870,7 @@ contract ConfigWithReferrerAndZeroFees is
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 creatorRoyalty, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
     return (address(0xaceface), 0, 0, 0);
   }
@@ -856,7 +890,7 @@ contract ConfigWithoutReferrerAndStandardFees is
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 creatorRoyalty, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
     return (address(0), 700, 1000, 300);
   }
@@ -876,7 +910,7 @@ contract ConfigWithoutReferrerAndMaxFees is
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 creatorRoyalty, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
     return (address(0), 2500, 5000, 2500);
   }
@@ -896,7 +930,7 @@ contract ConfigWithoutReferrerAndZeroFees is
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 creatorRoyalty, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
     return (address(0), 0, 0, 0);
   }
