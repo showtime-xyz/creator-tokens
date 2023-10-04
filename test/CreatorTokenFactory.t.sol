@@ -5,7 +5,6 @@ import {Test, console2} from "forge-std/Test.sol";
 import {CreatorToken} from "src/CreatorToken.sol";
 import {CTBondingCurve} from "src/CTBondingCurve.sol";
 import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
-import {CTBondingCurve} from "src/CTBondingCurve.sol";
 import {CreatorTokenFactory, Attestation} from "src/CreatorTokenFactory.sol";
 import {
   ITestableShowtimeVerifier,
