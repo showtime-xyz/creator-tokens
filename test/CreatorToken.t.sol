@@ -812,7 +812,7 @@ abstract contract Royalty is CreatorTokenTest {
     creatorToken.updateCreator(_secondNewCreator);
     assertEq(creatorToken.creator(), _secondNewCreator);
     (address _secondRoyaltyReceiver,) = creatorToken.royaltyInfo(_tokenId, _salePrice);
-    assertEq(_secondRoyaltyReceiver, _newCreator);
+    assertEq(_secondRoyaltyReceiver, _secondNewCreator);
   }
 }
 
