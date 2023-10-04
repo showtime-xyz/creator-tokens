@@ -38,7 +38,7 @@ contract CreatorTokenFactoryTest is Test {
 
   function setUp() public {
     vm.createSelectFork(vm.rpcUrl("base"), BASE_FORK_BLOCK);
-    factory = new CreatorTokenFactory(VERIFIER);
+    factory = new CreatorTokenFactory(VERIFIER, VERIFIER.domainSeparator());
 
     (showtimeSigner, showtimeSignerKey) = makeAddrAndKey("showtime test signer");
 
@@ -263,7 +263,7 @@ contract TokenDeployment is CreatorTokenFactoryTest {
 
     // Deploy a mock verifier that will return false from its verify methods
     IShowtimeVerifier _mockVerifier = new MockFailingVerifier();
-    factory = new CreatorTokenFactory(_mockVerifier);
+    factory = new CreatorTokenFactory(_mockVerifier, 0x0);
 
     vm.expectRevert(CreatorTokenFactory.CreatorTokenFactory__DeploymentNotVerified.selector);
     factory.deploy(_attestation, _config, _signature);
