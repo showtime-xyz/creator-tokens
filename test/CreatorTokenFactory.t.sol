@@ -70,6 +70,7 @@ contract CreatorTokenFactoryTest is Test {
     _boundAttestation(_attestation);
     vm.assume(_config.creator != address(0) && _config.admin != address(0));
     _config.creatorFee = bound(_config.creatorFee, 0, MAX_FEE);
+    _config.creatorRoyalty = uint96(bound(_config.creatorRoyalty, 0, MAX_FEE));
     _config.adminFee = bound(_config.adminFee, 0, MAX_FEE);
     _config.attestationDigest = _attestationDigest(_attestation);
   }
@@ -83,6 +84,7 @@ contract CreatorTokenFactoryTest is Test {
     assertEq(_creatorToken.tokenURI(0), _config.tokenURI);
     assertEq(_creatorToken.creator(), _config.creator);
     assertEq(_creatorToken.CREATOR_FEE_BIPS(), _config.creatorFee);
+    assertEq(_creatorToken.CREATOR_ROYALTY_BIPS(), _config.creatorRoyalty);
     assertEq(_creatorToken.admin(), _config.admin);
     assertEq(_creatorToken.ADMIN_FEE_BIPS(), _config.adminFee);
     assertEq(_creatorToken.REFERRER(), _config.referrer);
@@ -134,6 +136,7 @@ contract TokenDeployment is CreatorTokenFactoryTest {
       tokenURI: "ipfs://bafybeigwkxrxgqk27netupk5xxxput2fdjnhl4vrgy46nmyqpj4p4jdfsy",
       creator: address(0xace),
       creatorFee: 700,
+      creatorRoyalty: 1000,
       admin: address(0xb055),
       adminFee: 300,
       referrer: address(0xd00d),
