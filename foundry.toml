@@ -19,8 +19,8 @@
   optimizer = false
 
 [rpc_endpoints]
-  mainnet = "${MAINNET_RPC_URL}"
   base = "${BASE_RPC_URL}"
+  mainnet = "${MAINNET_RPC_URL}"
 
 [fmt]
   bracket_spacing = false
