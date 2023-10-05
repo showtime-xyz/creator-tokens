@@ -184,7 +184,7 @@ contract CreatorToken is ERC721Royalty {
   }
 
   function _buy(address _to) internal whenNotPaused returns (uint256 _totalPrice) {
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextBuyPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = priceToBuyNext();
     _totalPrice = _tokenPrice + _creatorFee + _adminFee;
 
     _mintAndIncrement(_to);
@@ -209,7 +209,7 @@ contract CreatorToken is ERC721Royalty {
       (REFERRER == address(0) && totalSupply == 1) || (REFERRER != address(0) && totalSupply == 2);
     if (_isOneOfLastTokens) revert CreatorToken__LastTokensCannotBeSold(totalSupply);
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextSellPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = priceToSellNext();
     _netProceeds = _tokenPrice - _creatorFee - _adminFee;
 
     transferFrom(msg.sender, address(this), _tokenId);
@@ -226,7 +226,7 @@ contract CreatorToken is ERC721Royalty {
     isPaused = _pauseState;
   }
 
-  function nextBuyPrice()
+  function priceToBuyNext()
     public
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
@@ -235,13 +235,62 @@ contract CreatorToken is ERC721Royalty {
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
   }
 
-  function nextSellPrice()
+  function priceToBuyNext(uint256 _numOfTokens)
+    public
+    view
+    returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
+  {
+    // For any given iteration of the loop below, the token number to ask the bonding curve
+    // the price of is the current supply, plus the index, plus 1 (because of 0 indexing),
+    // minus the pre-mint offset. Here we pre-calculate all those terms except the index, then
+    // use this offset below in the loop.
+    uint256 _offset = totalSupply + 1 - _preMintOffset();
+
+    // Variables that will hold the price + fees for each iteration of the loop. We must
+    // hold each individually to avoid rounding differences that occur if you first find
+    // the total price of all tokens, then calculate net fees.
+    uint256 _nthTokenPrice;
+    uint256 _nthCreatorFee;
+    uint256 _nthAdminFee;
+
+    for (uint256 _i = 0; _i < _numOfTokens; _i++) {
+      _nthTokenPrice = BONDING_CURVE.priceForTokenNumber(_i + _offset);
+      (_nthCreatorFee, _nthAdminFee) = calculateFees(_nthTokenPrice);
+
+      _tokenPrice += _nthTokenPrice;
+      _creatorFee += _nthCreatorFee;
+      _adminFee += _nthAdminFee;
+    }
+  }
+
+  function priceToSellNext()
     public
     view
     returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
   {
     _tokenPrice = BONDING_CURVE.priceForTokenNumber(totalSupply - _preMintOffset());
     (_creatorFee, _adminFee) = calculateFees(_tokenPrice);
+  }
+
+  function priceToSellNext(uint256 _numOfTokens)
+    public
+    view
+    returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
+  {
+    uint256 _offset = totalSupply - _preMintOffset();
+
+    uint256 _nthTokenPrice;
+    uint256 _nthCreatorFee;
+    uint256 _nthAdminFee;
+
+    for (uint256 _i = 0; _i < _numOfTokens; _i++) {
+      _nthTokenPrice = BONDING_CURVE.priceForTokenNumber(_offset - _i);
+      (_nthCreatorFee, _nthAdminFee) = calculateFees(_nthTokenPrice);
+
+      _tokenPrice += _nthTokenPrice;
+      _creatorFee += _nthCreatorFee;
+      _adminFee += _nthAdminFee;
+    }
   }
 
   function calculateFees(uint256 _price)
