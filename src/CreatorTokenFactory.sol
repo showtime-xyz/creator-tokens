@@ -13,6 +13,7 @@ contract CreatorTokenFactory {
     string tokenURI;
     address creator;
     uint256 creatorFee;
+    uint96 creatorRoyalty;
     address admin;
     uint256 adminFee;
     address referrer;
@@ -32,7 +33,7 @@ contract CreatorTokenFactory {
   error CreatorTokenFactory__InvalidAttestation();
 
   bytes public constant DEPLOY_TYPE =
-    "DeploymentConfig(string name,string symbol,string tokenURI,address creator,uint256 creatorFee,address admin,uint256 adminFee,address referrer,address payToken,uint128 basePrice,uint128 linearPriceSlope,uint128 inflectionPrice,uint32 inflectionPoint,bytes32 attestationDigest)";
+    "DeploymentConfig(string name,string symbol,string tokenURI,address creator,uint256 creatorFee,uint96 creatorRoyalty,address admin,uint256 adminFee,address referrer,address payToken,uint128 basePrice,uint128 linearPriceSlope,uint128 inflectionPrice,uint32 inflectionPoint,bytes32 attestationDigest)";
 
   bytes32 public constant DEPLOY_TYPE_HASH = keccak256(DEPLOY_TYPE);
 
@@ -69,13 +70,14 @@ contract CreatorTokenFactory {
         uint256(uint160(_config.creator)),
         _config.creatorFee,
         uint256(uint160(_config.admin)),
+        uint96(_config.creatorRoyalty),
         _config.adminFee,
         uint256(uint160(_config.referrer)),
         uint256(uint160(address(_config.payToken))),
         uint256(_config.basePrice),
-        uint256(_config.linearPriceSlope),
-        uint256(_config.inflectionPrice)
+        uint256(_config.linearPriceSlope)
       ),
+      uint256(_config.inflectionPrice),
       uint256(_config.inflectionPoint),
       _config.attestationDigest
     );
@@ -107,6 +109,7 @@ contract CreatorTokenFactory {
       _config.tokenURI,
       _config.creator,
       _config.creatorFee,
+      _config.creatorRoyalty,
       _config.admin,
       _config.adminFee,
       _config.referrer,
