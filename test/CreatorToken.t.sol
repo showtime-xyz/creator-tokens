@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 import {Test, console2} from "forge-std/Test.sol";
 import {CreatorToken, IBondingCurve} from "src/CreatorToken.sol";
 import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
+import {IERC165} from "openzeppelin/interfaces/IERC165.sol";
 import {MockIncrementingBondingCurve} from "test/mocks/MockIncrementingBondingCurve.sol";
 
 abstract contract CreatorTokenTest is Test {
@@ -22,6 +23,7 @@ abstract contract CreatorTokenTest is Test {
   string PAY_TOKEN_SYMBOL = "PAY";
   uint256 BASE_PAY_AMOUNT = 1e18; // Because our test token has 18 decimals
   uint256 creatorFee;
+  uint96 creatorRoyalty;
   uint256 adminFee;
   uint256 constant MAX_FEE = 2500; // matches private variable in CreatorToken
 
@@ -46,14 +48,16 @@ abstract contract CreatorTokenTest is Test {
   event TokenURIUpdated(string oldTokenURI, string newTokenURI);
 
   function setUp() public {
-    (address _referrer, uint256 _creatorFee, uint256 _adminFee) = deployConfig();
+    (address _referrer, uint256 _creatorFee, uint96 _creatorRoyalty, uint256 _adminFee) =
+      deployConfig();
     referrer = _referrer;
     creatorFee = _creatorFee;
+    creatorRoyalty = _creatorRoyalty;
     adminFee = _adminFee;
     payToken = new ERC20(PAY_TOKEN_NAME, PAY_TOKEN_SYMBOL);
     bondingCurve = new MockIncrementingBondingCurve(BASE_PAY_AMOUNT);
     creatorToken =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, admin, adminFee, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, creatorRoyalty, admin, adminFee, referrer, payToken, bondingCurve);
   }
 
   function _assumeSafeBuyer(address _buyer) public view {
@@ -67,7 +71,7 @@ abstract contract CreatorTokenTest is Test {
     internal
     pure
     virtual
-    returns (address referrer, uint256 creatorFee, uint256 adminFee);
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee);
 
   function buyAToken(address _buyer) public {
     _assumeSafeBuyer(_buyer);
@@ -161,6 +165,7 @@ abstract contract Deployment is CreatorTokenTest {
     assertEq(creatorToken.tokenURI(1), CREATOR_TOKEN_URI);
     assertEq(creatorToken.creator(), creator);
     assertEq(creatorToken.CREATOR_FEE_BIPS(), creatorFee);
+    assertEq(creatorToken.CREATOR_ROYALTY_BIPS(), creatorRoyalty);
     assertEq(creatorToken.admin(), admin);
     assertEq(creatorToken.ADMIN_FEE_BIPS(), adminFee);
     assertEq(creatorToken.REFERRER(), referrer);
@@ -173,7 +178,7 @@ abstract contract Deployment is CreatorTokenTest {
     address _creatorZeroAddress = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     _creatorTokenInstance =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, _creatorZeroAddress, creatorFee, admin, adminFee, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, _creatorZeroAddress, creatorFee, creatorRoyalty, admin, adminFee, referrer, payToken, bondingCurve);
   }
 
   function test_RevertIf_TokenIsConfiguredWithZeroAddressAsAdmin() public {
@@ -181,7 +186,7 @@ abstract contract Deployment is CreatorTokenTest {
     address _adminZeroAddress = address(0);
     vm.expectRevert(CreatorToken.CreatorToken__AddressZeroNotAllowed.selector);
     _creatorTokenInstance =
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, _adminZeroAddress, adminFee, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, creatorRoyalty, _adminZeroAddress, adminFee, referrer, payToken, bondingCurve);
   }
 
   function test_RevertIf_CreatorFeeExceedsMaxFee(uint256 _creatorFee) public {
@@ -192,7 +197,7 @@ abstract contract Deployment is CreatorTokenTest {
         CreatorToken.CreatorToken__MaxFeeExceeded.selector, _creatorFee, MAX_FEE
       )
     );
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, _creatorFee, admin, adminFee, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, _creatorFee, creatorRoyalty, admin, adminFee, referrer, payToken, bondingCurve);
   }
 
   function test_RevertIf_AdminFeeExceedsMaxFee(uint256 _adminFee) public {
@@ -201,7 +206,7 @@ abstract contract Deployment is CreatorTokenTest {
     vm.expectRevert(
       abi.encodeWithSelector(CreatorToken.CreatorToken__MaxFeeExceeded.selector, _adminFee, MAX_FEE)
     );
-    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, admin, _adminFee, referrer, payToken, bondingCurve);
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, creatorRoyalty, admin, _adminFee, referrer, payToken, bondingCurve);
   }
 
   function test_FirstTokensAreMintedCorrectly() public {
@@ -919,6 +924,57 @@ abstract contract UpdatingBaseURI is CreatorTokenTest {
   }
 }
 
+abstract contract Royalty is CreatorTokenTest {
+  function test_ContractSupportERC2981Interface() public {
+    bytes4 _INTERFACE_ID_ERC2981 = 0x2a55205a;
+    assertTrue(IERC165(creatorToken).supportsInterface(_INTERFACE_ID_ERC2981));
+  }
+
+  function test_RoyaltyInfo(uint256 _tokenId, uint256 _salePrice) public {
+    _tokenId = bound(_tokenId, 0, 100_000);
+    _salePrice = bound(_salePrice, 1, 10_000 ether);
+    (address _royaltyReceiver, uint256 _royaltyAmount) =
+      creatorToken.royaltyInfo(_tokenId, _salePrice);
+    assertEq(_royaltyReceiver, creator);
+    assertEq(_royaltyAmount, (_salePrice * creatorToken.CREATOR_ROYALTY_BIPS()) / 10_000);
+  }
+
+  function test_UpdateRoyaltyReceiverWhenCreatorIsUpdated(
+    address _newCreator,
+    address _secondNewCreator,
+    uint256 _tokenId,
+    uint256 _salePrice
+  ) public {
+    vm.assume(_newCreator != address(0) && _newCreator != creator);
+    vm.assume(_secondNewCreator != address(0) && _secondNewCreator != _newCreator);
+    _tokenId = bound(_tokenId, 0, 100_000);
+    _salePrice = bound(_salePrice, 1, 10_000 ether);
+
+    vm.prank(creator);
+    creatorToken.updateCreator(_newCreator);
+    assertEq(creatorToken.creator(), _newCreator);
+    (address _royaltyReceiver,) = creatorToken.royaltyInfo(_tokenId, _salePrice);
+    assertEq(_royaltyReceiver, _newCreator);
+
+    vm.prank(_newCreator);
+    creatorToken.updateCreator(_secondNewCreator);
+    assertEq(creatorToken.creator(), _secondNewCreator);
+    (address _secondRoyaltyReceiver,) = creatorToken.royaltyInfo(_tokenId, _salePrice);
+    assertEq(_secondRoyaltyReceiver, _secondNewCreator);
+  }
+
+  function test_RevertIf_CreatorRoyaltyExceedsMaxFee(uint96 _creatorRoyalty) public {
+    _creatorRoyalty = uint96(bound(_creatorRoyalty, MAX_FEE + 1, type(uint256).max));
+
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__MaxFeeExceeded.selector, _creatorRoyalty, MAX_FEE
+      )
+    );
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, _creatorRoyalty, admin, adminFee, referrer, payToken, bondingCurve);
+  }
+}
+
 contract ConfigWithReferrerAndStandardFees is
   Deployment,
   Buying,
@@ -926,15 +982,16 @@ contract ConfigWithReferrerAndStandardFees is
   UpdatingCreatorAndAdminAddresses,
   Pausing,
   CreatorTokenFollowsBondingCurveContract,
-  UpdatingBaseURI
+  UpdatingBaseURI,
+  Royalty
 {
   function deployConfig()
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
-    return (address(0xaceface), 700, 300);
+    return (address(0xaceface), 700, 1000, 300);
   }
 }
 
@@ -945,15 +1002,16 @@ contract ConfigWithReferrerAndMaxFees is
   UpdatingCreatorAndAdminAddresses,
   Pausing,
   CreatorTokenFollowsBondingCurveContract,
-  UpdatingBaseURI
+  UpdatingBaseURI,
+  Royalty
 {
   function deployConfig()
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
-    return (address(0xaceface), 2500, 2500);
+    return (address(0xaceface), 2500, 2500, 2500);
   }
 }
 
@@ -964,15 +1022,16 @@ contract ConfigWithReferrerAndZeroFees is
   UpdatingCreatorAndAdminAddresses,
   Pausing,
   CreatorTokenFollowsBondingCurveContract,
-  UpdatingBaseURI
+  UpdatingBaseURI,
+  Royalty
 {
   function deployConfig()
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
-    return (address(0xaceface), 0, 0);
+    return (address(0xaceface), 0, 0, 0);
   }
 }
 
@@ -983,15 +1042,16 @@ contract ConfigWithoutReferrerAndStandardFees is
   UpdatingCreatorAndAdminAddresses,
   Pausing,
   CreatorTokenFollowsBondingCurveContract,
-  UpdatingBaseURI
+  UpdatingBaseURI,
+  Royalty
 {
   function deployConfig()
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
-    return (address(0), 700, 300);
+    return (address(0), 700, 1000, 300);
   }
 }
 
@@ -1002,15 +1062,16 @@ contract ConfigWithoutReferrerAndMaxFees is
   UpdatingCreatorAndAdminAddresses,
   Pausing,
   CreatorTokenFollowsBondingCurveContract,
-  UpdatingBaseURI
+  UpdatingBaseURI,
+  Royalty
 {
   function deployConfig()
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
-    return (address(0), 2500, 2500);
+    return (address(0), 2500, 2500, 2500);
   }
 }
 
@@ -1021,14 +1082,15 @@ contract ConfigWithoutReferrerAndZeroFees is
   UpdatingCreatorAndAdminAddresses,
   Pausing,
   CreatorTokenFollowsBondingCurveContract,
-  UpdatingBaseURI
+  UpdatingBaseURI,
+  Royalty
 {
   function deployConfig()
     internal
     pure
     override
-    returns (address referrer, uint256 creatorFee, uint256 adminFee)
+    returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
-    return (address(0), 0, 0);
+    return (address(0), 0, 0, 0);
   }
 }
