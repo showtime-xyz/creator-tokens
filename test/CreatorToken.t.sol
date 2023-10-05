@@ -24,6 +24,7 @@ abstract contract CreatorTokenTest is Test {
   uint256 creatorFee;
   uint256 adminFee;
   uint256 constant MAX_FEE = 2500; // matches private variable in CreatorToken
+  uint256 constant MIN_HOLDING_TIME = 60; // matches private variable in CreatorToken
 
   event Bought(
     address indexed payer,
@@ -85,6 +86,7 @@ abstract contract CreatorTokenTest is Test {
     vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
     creatorToken.buy(_totalPrice);
+    vm.warp(block.timestamp + MIN_HOLDING_TIME);
     vm.stopPrank();
 
     assertEq(
@@ -119,6 +121,11 @@ abstract contract CreatorTokenTest is Test {
       payToken.balanceOf(admin),
       _originalPayTokenBalanceOfAdmin + _adminFee,
       "buyAToken: Admin balance mismatch"
+    );
+    assertEq(
+      creatorToken.purchaseTime(creatorToken.lastId()),
+      block.timestamp - MIN_HOLDING_TIME,
+      "buyAToken: Purchase time mismatch"
     );
   }
 
@@ -646,9 +653,30 @@ abstract contract Selling is CreatorTokenTest {
 
     vm.startPrank(_seller);
     creatorToken.approve(address(creatorToken), _tokenId);
+    vm.warp(block.timestamp + MIN_HOLDING_TIME);
     vm.expectRevert(
       abi.encodeWithSelector(
         CreatorToken.CreatorToken__LastTokensCannotBeSold.selector, creatorToken.totalSupply()
+      )
+    );
+    creatorToken.sell(_tokenId);
+    vm.stopPrank();
+  }
+
+  function test_RevertIf_MinHoldingTimeNotReached(address _seller) public {
+    // `buyAToken` buys a token and warps to the minimum holding time.
+    buyAToken(_seller);
+    uint256 _tokenId = creatorToken.lastId();
+    // Warp back to before the minimum holding time.
+    vm.warp(block.timestamp - MIN_HOLDING_TIME);
+
+    vm.startPrank(_seller);
+    creatorToken.approve(address(creatorToken), _tokenId);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__MinHoldingTimeNotReached.selector,
+        block.timestamp - creatorToken.purchaseTime(_tokenId),
+        MIN_HOLDING_TIME
       )
     );
     creatorToken.sell(_tokenId);

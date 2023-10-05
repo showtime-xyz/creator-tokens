@@ -16,6 +16,7 @@ contract CreatorToken is ERC721 {
   error CreatorToken__CallerIsNotOwner(uint256 tokenId, address owner, address caller);
   error CreatorToken__MinAcceptedPriceExceeded(uint256 price, uint256 minAcceptedPrice);
   error CreatorToken__LastTokensCannotBeSold(uint256 circulatingSupply);
+  error CreatorToken__MinHoldingTimeNotReached(uint256 holdingTime, uint256 minHoldingTime);
   error CreatorToken__ContractIsPaused();
 
   uint256 public lastId;
@@ -32,6 +33,8 @@ contract CreatorToken is ERC721 {
   uint256 public immutable CREATOR_FEE_BIPS;
   uint256 public immutable ADMIN_FEE_BIPS;
   uint256 private constant MAX_FEE = 2500; // 25% in bips
+  uint256 private constant MIN_HOLDING_TIME = 60;
+  mapping(uint256 => uint256) public purchaseTime;
 
   event Bought(
     address indexed payer,
@@ -178,6 +181,7 @@ contract CreatorToken is ERC721 {
     _totalPrice = _tokenPrice + _creatorFee + _adminFee;
 
     _mintAndIncrement(_to);
+    purchaseTime[lastId] = block.timestamp;
     emit Bought(msg.sender, _to, lastId, _tokenPrice, _creatorFee, _adminFee);
     payToken.safeTransferFrom(msg.sender, address(this), _tokenPrice);
     payToken.safeTransferFrom(msg.sender, creator, _creatorFee);
@@ -187,6 +191,11 @@ contract CreatorToken is ERC721 {
   function _sell(uint256 _tokenId) internal whenNotPaused returns (uint256 _netProceeds) {
     if (msg.sender != ownerOf(_tokenId)) {
       revert CreatorToken__CallerIsNotOwner(_tokenId, ownerOf(_tokenId), msg.sender);
+    }
+    if (block.timestamp - purchaseTime[_tokenId] < MIN_HOLDING_TIME) {
+      revert CreatorToken__MinHoldingTimeNotReached(
+        block.timestamp - purchaseTime[_tokenId], MIN_HOLDING_TIME
+      );
     }
 
     bool _isOneOfLastTokens =
