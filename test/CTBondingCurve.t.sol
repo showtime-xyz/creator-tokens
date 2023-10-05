@@ -90,22 +90,22 @@ contract CurveMath is CTBondingCurveTest {
       new CTBondingCurve(_basePrice, _linearPriceSlope, _inflectionPrice, _inflectionPoint);
 
     // forgefmt: disable-start
-    assertEq(_curve.priceForTokenNumber(1), 1_017_600);    // 1st    token is  $1.0176
-    assertEq(_curve.priceForTokenNumber(2), 1_070_400);    // 2nd    token is  $1.0704
-    assertEq(_curve.priceForTokenNumber(3), 1_158_400);    // 3rd    token is  $1.1584
-    assertEq(_curve.priceForTokenNumber(4), 1_281_600);    // 4th    token is  $1.2816
-    assertEq(_curve.priceForTokenNumber(5), 1_440_000);    // 5th    token is  $1.4400
-    assertEq(_curve.priceForTokenNumber(10), 2_760_000);   // 10th   token is  $2.7600
-    assertEq(_curve.priceForTokenNumber(20), 8_040_000);   // 20th   token is  $8.0400
-    assertEq(_curve.priceForTokenNumber(30), 16_840_000);  // 30th   token is  $16.8400
-    assertEq(_curve.priceForTokenNumber(40), 29_160_000);  // 40th   token is  $29.1600
-    assertEq(_curve.priceForTokenNumber(50), 45_000_000);  // 50th   token is  $45.0400
-    assertEq(_curve.priceForTokenNumber(51), 46_760_000);  // 51st   token is  $46.7600 | 46.726  (-0.034)
-    assertEq(_curve.priceForTokenNumber(60), 59_080_000);  // 60th   token is  $59.0800 | 60.032  ( 0.952)
-    assertEq(_curve.priceForTokenNumber(70), 71_400_000);  // 70th   token is  $71.4000 | 71.984  ( 0.584)
-    assertEq(_curve.priceForTokenNumber(80), 81_960_000);  // 80th   token is  $81.9600 | 82.132  ( 0.172)
-    assertEq(_curve.priceForTokenNumber(90), 90_760_000);  // 90th   token is  $90.7600 | 91.173  ( 0.413)
-    assertEq(_curve.priceForTokenNumber(100), 99_560_000); // 100th  token is  $99.5600 | 99.387  (-0.173)
+    assertEq(_curve.priceForTokenNumber(1), 1_017_600);// 1st    token is  $1.0176
+    assertEq(_curve.priceForTokenNumber(2), 1_070_400);// 2nd    token is  $1.0704
+    assertEq(_curve.priceForTokenNumber(3), 1_158_400);// 3rd    token is  $1.1584
+    assertEq(_curve.priceForTokenNumber(4), 1_281_600);// 4th    token is  $1.2816
+    assertEq(_curve.priceForTokenNumber(5), 1_440_000);// 5th    token is  $1.4400
+    assertEq(_curve.priceForTokenNumber(10), 2_760_000);// 10th   token is  $2.7600
+    assertEq(_curve.priceForTokenNumber(20), 8_040_000);// 20th   token is  $8.0400
+    assertEq(_curve.priceForTokenNumber(30), 16_840_000);// 30th   token is  $16.8400
+    assertEq(_curve.priceForTokenNumber(40), 29_160_000);// 40th   token is  $29.1600
+    assertEq(_curve.priceForTokenNumber(50), 45_000_000);// 50th   token is  $45.0400
+    assertEq(_curve.priceForTokenNumber(51), 46_760_000);// 51st   token is  $46.7600 | 46.726  (-0.034)
+    assertEq(_curve.priceForTokenNumber(60), 59_080_000);// 60th   token is  $59.0800 | 60.032  ( 0.952)
+    assertEq(_curve.priceForTokenNumber(70), 71_400_000);// 70th   token is  $71.4000 | 71.984  ( 0.584)
+    assertEq(_curve.priceForTokenNumber(80), 81_960_000);// 80th   token is  $81.9600 | 82.132  ( 0.172)
+    assertEq(_curve.priceForTokenNumber(90), 90_760_000);// 90th   token is  $90.7600 | 91.173  ( 0.413)
+    assertEq(_curve.priceForTokenNumber(100), 99_560_000);// 100th  token is  $99.5600 | 99.387  (-0.173)
     assertEq(_curve.priceForTokenNumber(1000), 386_440_000);// 1000th token is $386.4400 | 387.098 ( 0.658)
     // forgefmt: disable-end
   }
