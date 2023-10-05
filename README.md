@@ -16,6 +16,16 @@ _**Please read the full README before using this template.**_
 
 ## Usage
 
+### Deploying `CreatorTokenFactory` using deploy script
+
+1. Specify the RPC URL for the desired network in the `.env` file.
+2. Specify the private key of the deployer address in the `.env` file.
+3. Run the following command to deploy the CreatorTokenFactory contract:
+
+```bash
+forge script Deploy --sig "run(address)" <ShowtimeVerifier Contract Address> --rpc-url $RPC_URL_OF_CHOICE --private-key $PRIVATE_KEY --broadcast
+```
+
 To use this template, use one of the below approaches:
 
 1. Run `forge init --template ScopeLift/foundry-template` in an empty directory.

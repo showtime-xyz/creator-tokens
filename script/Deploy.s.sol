@@ -9,22 +9,18 @@ import {CreatorTokenFactory} from "src/CreatorTokenFactory.sol";
 import {ITestableShowtimeVerifier} from "test/interfaces/ITestableShowtimeVerifier.sol";
 
 contract Deploy is Script {
-  CreatorTokenFactory creatorTokenFactory;
-  ITestableShowtimeVerifier verifier;
-  bytes32 domainSeparator;
-
   /// @notice Deploy the contract
   function run(address _verifierAddress) public {
-    verifier = ITestableShowtimeVerifier(_verifierAddress);
-    if (address(verifier).code.length == 0) revert("Verifier address is not a contract");
+    ITestableShowtimeVerifier _verifier = ITestableShowtimeVerifier(_verifierAddress);
+    if (address(_verifier).code.length == 0) revert("Verifier address is not a contract");
     // Setup Domain Separator
-    domainSeparator = verifier.domainSeparator();
+    bytes32 _domainSeparator = _verifier.domainSeparator();
 
     // Deploy the contract
     vm.broadcast();
 
-    creatorTokenFactory = new CreatorTokenFactory(verifier, domainSeparator);
-    require(creatorTokenFactory.domainSeparator() == domainSeparator, "Domain separator Mismatch");
+    CreatorTokenFactory creatorTokenFactory = new CreatorTokenFactory(_verifier, _domainSeparator);
+    require(creatorTokenFactory.domainSeparator() == _domainSeparator, "Domain separator Mismatch");
 
     console2.log("Deployed contract address %s", address(creatorTokenFactory));
   }
