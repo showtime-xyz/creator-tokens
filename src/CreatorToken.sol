@@ -86,6 +86,7 @@ contract CreatorToken is ERC721Royalty {
     IBondingCurve _bondingCurve
   ) ERC721(_name, _symbol) isNotAddressZero(_creator) isNotAddressZero(_admin) {
     if (_creatorFee > MAX_FEE) revert CreatorToken__MaxFeeExceeded(_creatorFee, MAX_FEE);
+    if (_creatorRoyalty > MAX_FEE) revert CreatorToken__MaxFeeExceeded(_creatorRoyalty, MAX_FEE);
     if (_adminFee > MAX_FEE) revert CreatorToken__MaxFeeExceeded(_adminFee, MAX_FEE);
 
     creatorTokenURI = _tokenURI;

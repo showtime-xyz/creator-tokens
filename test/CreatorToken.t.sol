@@ -814,6 +814,17 @@ abstract contract Royalty is CreatorTokenTest {
     (address _secondRoyaltyReceiver,) = creatorToken.royaltyInfo(_tokenId, _salePrice);
     assertEq(_secondRoyaltyReceiver, _secondNewCreator);
   }
+
+  function test_RevertIf_CreatorRoyaltyExceedsMaxFee(uint96 _creatorRoyalty) public {
+    _creatorRoyalty = uint96(bound(_creatorRoyalty, MAX_FEE + 1, type(uint256).max));
+
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CreatorToken.CreatorToken__MaxFeeExceeded.selector, _creatorRoyalty, MAX_FEE
+      )
+    );
+    new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, _creatorRoyalty, admin, adminFee, referrer, payToken, bondingCurve);
+  }
 }
 
 contract ConfigWithReferrerAndStandardFees is
@@ -852,7 +863,7 @@ contract ConfigWithReferrerAndMaxFees is
     override
     returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
-    return (address(0xaceface), 2500, 5000, 2500);
+    return (address(0xaceface), 2500, 2500, 2500);
   }
 }
 
@@ -912,7 +923,7 @@ contract ConfigWithoutReferrerAndMaxFees is
     override
     returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
   {
-    return (address(0), 2500, 5000, 2500);
+    return (address(0), 2500, 2500, 2500);
   }
 }
 
