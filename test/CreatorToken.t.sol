@@ -90,8 +90,8 @@ abstract contract CreatorTokenTest is Test {
     vm.startPrank(_buyer);
     payToken.approve(address(creatorToken), type(uint256).max);
     creatorToken.buy(_totalPrice);
-    vm.warp(block.timestamp + MIN_HOLDING_TIME);
     vm.stopPrank();
+    vm.warp(block.timestamp + MIN_HOLDING_TIME);
 
     assertEq(
       creatorToken.balanceOf(_buyer),
@@ -125,11 +125,6 @@ abstract contract CreatorTokenTest is Test {
       payToken.balanceOf(admin),
       _originalPayTokenBalanceOfAdmin + _adminFee,
       "buyAToken: Admin balance mismatch"
-    );
-    assertEq(
-      creatorToken.purchaseTime(creatorToken.lastId()),
-      block.timestamp - MIN_HOLDING_TIME,
-      "buyAToken: Purchase time mismatch"
     );
   }
 
@@ -655,10 +650,9 @@ abstract contract Selling is CreatorTokenTest {
     );
 
     uint256 _tokenId = creatorToken.lastId();
-
+    vm.warp(block.timestamp + MIN_HOLDING_TIME);
     vm.startPrank(_seller);
     creatorToken.approve(address(creatorToken), _tokenId);
-    vm.warp(block.timestamp + MIN_HOLDING_TIME);
     vm.expectRevert(
       abi.encodeWithSelector(
         CreatorToken.CreatorToken__LastTokensCannotBeSold.selector, creatorToken.totalSupply()
@@ -668,20 +662,21 @@ abstract contract Selling is CreatorTokenTest {
     vm.stopPrank();
   }
 
-  function test_RevertIf_MinHoldingTimeNotReached(address _seller) public {
+  function test_RevertIf_MinHoldingTimeNotReached(address _seller, uint256 _holdingTime) public {
+    _holdingTime = bound(_holdingTime, 0, MIN_HOLDING_TIME - 1);
     // `buyAToken` buys a token and warps to the minimum holding time.
     buyAToken(_seller);
     uint256 _tokenId = creatorToken.lastId();
     // Warp back to before the minimum holding time.
     vm.warp(block.timestamp - MIN_HOLDING_TIME);
+    // Warp forward to the time elapsed.
+    vm.warp(block.timestamp + _holdingTime);
 
     vm.startPrank(_seller);
     creatorToken.approve(address(creatorToken), _tokenId);
     vm.expectRevert(
       abi.encodeWithSelector(
-        CreatorToken.CreatorToken__MinHoldingTimeNotReached.selector,
-        block.timestamp - creatorToken.purchaseTime(_tokenId),
-        MIN_HOLDING_TIME
+        CreatorToken.CreatorToken__MinHoldingTimeNotReached.selector, _holdingTime, MIN_HOLDING_TIME
       )
     );
     creatorToken.sell(_tokenId);
