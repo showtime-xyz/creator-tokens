@@ -13,8 +13,6 @@ contract Deploy is Script {
   ITestableShowtimeVerifier verifier;
   bytes32 domainSeparator;
 
-  mapping(string => address) public creatorTokenFactoryAddresses;
-
   /// @notice Deploy the contract
   function run(address _verifierAddress) public {
     verifier = ITestableShowtimeVerifier(_verifierAddress);
