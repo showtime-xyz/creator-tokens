@@ -76,7 +76,7 @@ abstract contract CreatorTokenTest is Test {
 
   function buyAToken(address _buyer) public {
     _assumeSafeBuyer(_buyer);
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     uint256 _originalPayTokenBalanceOfCreatorTokenContract =
       payToken.balanceOf(address(creatorToken));
@@ -133,7 +133,7 @@ abstract contract CreatorTokenTest is Test {
       creatorToken.ownerOf(_tokenId) == _seller,
       "Broken test invariant: seller does not own the token to sell."
     );
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToSellNext();
     uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
     uint256 _originalPayTokenBalanceOfCreatorTokenContract =
       payToken.balanceOf(address(creatorToken));
@@ -226,7 +226,7 @@ abstract contract Deployment is CreatorTokenTest {
 
 abstract contract Buying is CreatorTokenTest {
   function test_FirstTokenOnBondingCurveCostsTheBasePrice() public {
-    (uint256 _tokenPrice,,) = creatorToken.nextBuyPrice();
+    (uint256 _tokenPrice,,) = creatorToken.priceToBuyNext();
     assertEq(_tokenPrice, BASE_PAY_AMOUNT);
   }
 
@@ -240,7 +240,7 @@ abstract contract Buying is CreatorTokenTest {
     uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
     uint256 _originalReceiverBalanceOfCreatorTokens = creatorToken.balanceOf(_to);
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
@@ -260,7 +260,7 @@ abstract contract Buying is CreatorTokenTest {
   function test_EmitsBoughtEvent(address _buyer) public {
     vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
@@ -396,7 +396,7 @@ abstract contract Buying is CreatorTokenTest {
   function test_RevertIf_PriceExceedsMaxPayment(address _buyer, uint256 _maxPayment) public {
     vm.assume(_buyer != address(0) && _buyer != address(creatorToken));
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     _maxPayment = bound(_maxPayment, 0, _totalPrice - 1);
     deal(address(payToken), _buyer, _totalPrice);
@@ -467,7 +467,7 @@ abstract contract Selling is CreatorTokenTest {
     // buy n tokens
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
       buyAToken(_seller);
-      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToSellNext();
       _expectedNetProceeds += (_tokenPrice - _creatorFee - _adminFee);
       _expectedPayTokenToBeEarnedByCreator += _creatorFee;
       _expectedPayTokenToBeEarnedByAdmin += _adminFee;
@@ -521,7 +521,7 @@ abstract contract Selling is CreatorTokenTest {
     // buy n tokens
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
       buyAToken(_seller);
-      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToSellNext();
       _expectedNetProceeds += _tokenPrice - _creatorFee - _adminFee;
 
       _tokenIds[_i] = (creatorToken.lastId());
@@ -550,14 +550,14 @@ abstract contract Selling is CreatorTokenTest {
   function test_LastTokenOnBondingCurveCostsTheBasePrice(address _seller) public {
     buyAToken(_seller);
 
-    (uint256 _tokenPrice,,) = creatorToken.nextSellPrice();
+    (uint256 _tokenPrice,,) = creatorToken.priceToSellNext();
     assertEq(_tokenPrice, BASE_PAY_AMOUNT);
   }
 
   function test_EmitsSoldEvent(address _seller) public {
     buyAToken(_seller);
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToSellNext();
     uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
 
     vm.startPrank(_seller);
@@ -580,7 +580,7 @@ abstract contract Selling is CreatorTokenTest {
     // buy n tokens
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
       buyAToken(_seller);
-      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToSellNext();
       _expectedNetProceeds += _tokenPrice - _creatorFee - _adminFee;
       _tokenIds[_i] = (creatorToken.lastId());
     }
@@ -605,7 +605,7 @@ abstract contract Selling is CreatorTokenTest {
     assertEq(creatorToken.ownerOf(creatorToken.lastId()), _seller);
     assertEq(payToken.balanceOf(_seller), 0);
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToSellNext();
     uint256 _netProceeds = _tokenPrice - _creatorFee - _adminFee;
     _minAcceptedPrice = bound(_minAcceptedPrice, _netProceeds + 1, type(uint256).max);
     uint256 _tokenId = creatorToken.lastId();
@@ -818,7 +818,7 @@ abstract contract Pausing is CreatorTokenTest {
 
     _assumeSafeBuyer(_buyer);
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
@@ -836,7 +836,7 @@ abstract contract Pausing is CreatorTokenTest {
 
     _assumeSafeBuyer(_buyer);
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
     uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
     deal(address(payToken), _buyer, _totalPrice);
 
@@ -868,27 +868,62 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
   function test_BuyPriceIsCorrect(address _buyer, uint256 _numTokensToBuy) public {
     _numTokensToBuy = bound(_numTokensToBuy, 1, 100);
 
+    (
+      uint256 _preCalculatedTotalTokenPrice,
+      uint256 _preCalculatedTotalCreatorFee,
+      uint256 _preCalculatedTotalAdminFee
+    ) = creatorToken.priceToBuyNext(_numTokensToBuy);
+
+    uint256 _totalTokenPrice;
+    uint256 _totalCreatorFee;
+    uint256 _totalAdminFee;
+
     for (uint256 _i = 0; _i < _numTokensToBuy; _i++) {
-      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextBuyPrice();
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
 
-      uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
-      uint256 _bondingCurveTokenPrice =
-        bondingCurve.priceForTokenNumber((creatorToken.totalSupply() + 1) - _preMintOffset);
-      (
-        uint256 _creatorFeeCalculatedWithBondingCurveTokenPrice,
-        uint256 _adminFeeCalculatedWithBondingCurveTokenPrice
-      ) = creatorToken.calculateFees(_bondingCurveTokenPrice);
+      // local scope to avoid stack too deep
+      {
+        uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
+        uint256 _bondingCurveTokenPrice =
+          bondingCurve.priceForTokenNumber((creatorToken.totalSupply() + 1) - _preMintOffset);
+        (
+          uint256 _creatorFeeCalculatedWithBondingCurveTokenPrice,
+          uint256 _adminFeeCalculatedWithBondingCurveTokenPrice
+        ) = creatorToken.calculateFees(_bondingCurveTokenPrice);
 
-      assertEq(_tokenPrice, _bondingCurveTokenPrice);
-      assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
-      assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
+        assertEq(_tokenPrice, _bondingCurveTokenPrice);
+        assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
+        assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
+      }
+
+      _totalTokenPrice += _tokenPrice;
+      _totalCreatorFee += _creatorFee;
+      _totalAdminFee += _adminFee;
+
       buyAToken(_buyer);
     }
+
+    assertEq(
+      _totalTokenPrice,
+      _preCalculatedTotalTokenPrice,
+      "Actual token prices didn't match value from helper method"
+    );
+    assertEq(
+      _totalCreatorFee,
+      _preCalculatedTotalCreatorFee,
+      "Actual creator fees didn't match value from helper method"
+    );
+    assertEq(
+      _totalAdminFee,
+      _preCalculatedTotalAdminFee,
+      "Actual admin fees didn't match value from helper method"
+    );
   }
 
   function test_SellPriceIsCorrect(address _seller, uint256 _numTokensToBuyAndSell) public {
     _numTokensToBuyAndSell = bound(_numTokensToBuyAndSell, 1, 100);
     uint256[] memory _tokenIds = new uint256[](_numTokensToBuyAndSell);
+
     // buy n tokens
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
       buyAToken(_seller);
@@ -896,23 +931,57 @@ abstract contract CreatorTokenFollowsBondingCurveContract is CreatorTokenTest {
     }
     require(creatorToken.balanceOf(_seller) == _numTokensToBuyAndSell);
 
+    (
+      uint256 _preCalculatedTotalTokenPrice,
+      uint256 _preCalculatedTotalCreatorFee,
+      uint256 _preCalculatedTotalAdminFee
+    ) = creatorToken.priceToSellNext(_numTokensToBuyAndSell);
+
+    uint256 _totalTokenPrice;
+    uint256 _totalCreatorFee;
+    uint256 _totalAdminFee;
+
     // sell n tokens
     for (uint256 _i = 0; _i < _numTokensToBuyAndSell; _i++) {
-      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.nextSellPrice();
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToSellNext();
 
-      uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
-      uint256 _bondingCurveTokenPrice =
-        bondingCurve.priceForTokenNumber(creatorToken.totalSupply() - _preMintOffset);
-      (
-        uint256 _creatorFeeCalculatedWithBondingCurveTokenPrice,
-        uint256 _adminFeeCalculatedWithBondingCurveTokenPrice
-      ) = creatorToken.calculateFees(_bondingCurveTokenPrice);
+      // local scope to avoid stack too deep
+      {
+        uint256 _preMintOffset = referrer == address(0) ? 1 : 2;
+        uint256 _bondingCurveTokenPrice =
+          bondingCurve.priceForTokenNumber(creatorToken.totalSupply() - _preMintOffset);
+        (
+          uint256 _creatorFeeCalculatedWithBondingCurveTokenPrice,
+          uint256 _adminFeeCalculatedWithBondingCurveTokenPrice
+        ) = creatorToken.calculateFees(_bondingCurveTokenPrice);
 
-      assertEq(_tokenPrice, _bondingCurveTokenPrice);
-      assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
-      assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
+        assertEq(_tokenPrice, _bondingCurveTokenPrice);
+        assertEq(_creatorFee, _creatorFeeCalculatedWithBondingCurveTokenPrice);
+        assertEq(_adminFee, _adminFeeCalculatedWithBondingCurveTokenPrice);
+      }
+
+      _totalTokenPrice += _tokenPrice;
+      _totalCreatorFee += _creatorFee;
+      _totalAdminFee += _adminFee;
+
       sellAToken(_seller, _tokenIds[_i]);
     }
+
+    assertEq(
+      _totalTokenPrice,
+      _preCalculatedTotalTokenPrice,
+      "Actual token prices didn't match value from helper method"
+    );
+    assertEq(
+      _totalCreatorFee,
+      _preCalculatedTotalCreatorFee,
+      "Actual creator fees didn't match value from helper method"
+    );
+    assertEq(
+      _totalAdminFee,
+      _preCalculatedTotalAdminFee,
+      "Actual admin fees didn't match value from helper method"
+    );
   }
 }
 
