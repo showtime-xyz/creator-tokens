@@ -34,7 +34,7 @@ contract CreatorToken is ERC721 {
   uint256 public immutable ADMIN_FEE_BIPS;
   uint256 private constant MAX_FEE = 2500; // 25% in bips
   uint256 private constant MIN_HOLDING_TIME = 60;
-  mapping(uint256 => uint256) public purchaseTime;
+  mapping(uint256 tokenId => uint256 blockTimestamp) internal purchaseTime;
 
   event Bought(
     address indexed payer,
