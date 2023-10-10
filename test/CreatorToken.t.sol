@@ -148,15 +148,32 @@ abstract contract CreatorTokenTest is Test {
     creatorToken.sell(_tokenId, _netProceeds);
     vm.stopPrank();
 
-    assertEq(creatorToken.balanceOf(_seller), _originalSellerBalanceOfCreatorTokens - 1);
+    assertEq(
+      creatorToken.balanceOf(_seller),
+      _originalSellerBalanceOfCreatorTokens - 1,
+      "sellerBalanceOfCreatorTokens mismatch"
+    );
     assertEq(
       payToken.balanceOf(address(creatorToken)),
-      _originalPayTokenBalanceOfCreatorTokenContract - _tokenPrice
+      _originalPayTokenBalanceOfCreatorTokenContract - _tokenPrice,
+      "PayTokenBalanceOfCreatorTokenContract mismatch"
     );
-    assertEq(payToken.balanceOf(_seller), _originalPayTokenBalanceOfSeller + _netProceeds);
-    assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply - 1);
-    assertEq(payToken.balanceOf(creator), _originalPayTokenBalanceOfCreator + _creatorFee);
-    assertEq(payToken.balanceOf(admin), _originalPayTokenBalanceOfAdmin + _adminFee);
+    assertEq(
+      payToken.balanceOf(_seller),
+      _originalPayTokenBalanceOfSeller + _netProceeds,
+      "PayTokenBalanceOfSeller mismatch"
+    );
+    assertEq(creatorToken.totalSupply(), _originalCreatorTokenSupply - 1, "totalSupply mismatch");
+    assertEq(
+      payToken.balanceOf(creator),
+      _originalPayTokenBalanceOfCreator + _creatorFee,
+      "PayTokenBalanceOfCreator mismatch"
+    );
+    assertEq(
+      payToken.balanceOf(admin),
+      _originalPayTokenBalanceOfAdmin + _adminFee,
+      "PayTokenBalanceOfAdmin mismatch"
+    );
   }
 }
 
