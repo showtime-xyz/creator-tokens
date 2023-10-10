@@ -3,8 +3,8 @@ pragma solidity 0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {CreatorToken, IBondingCurve} from "src/CreatorToken.sol";
-import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
-import {IERC165} from "openzeppelin/interfaces/IERC165.sol";
+import {IERC20, ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockIncrementingBondingCurve} from "test/mocks/MockIncrementingBondingCurve.sol";
 
 abstract contract CreatorTokenTest is Test {

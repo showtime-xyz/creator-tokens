@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import {CreatorToken} from "src/CreatorToken.sol";
 import {CTBondingCurve} from "src/CTBondingCurve.sol";
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IShowtimeVerifier, Attestation} from "src/lib/IShowtimeVerifier.sol";
 
 contract CreatorTokenFactory {
