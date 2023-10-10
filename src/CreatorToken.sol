@@ -111,27 +111,35 @@ contract CreatorToken is ERC721Royalty {
     _totalPrice = buy(msg.sender, _maxPayment);
   }
 
-  function buy(address _to, uint256 _maxPayment) public returns (uint256 _totalPrice) {
-    _totalPrice = _buy(_to);
+  function buy(address _to, uint256 _maxPayment) public returns (uint256) {
+    (uint256 _totalPrice, uint256 _creatorFee, uint256 _adminFee) = _buy(_to);
     if (_totalPrice > _maxPayment) {
       revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
     }
+    payToken.safeTransferFrom(msg.sender, creator, _creatorFee);
+    payToken.safeTransferFrom(msg.sender, admin, _adminFee);
+    return _totalPrice;
   }
 
   function bulkBuy(uint256 _numOfTokens, uint256 _maxPayment) public returns (uint256 _totalPrice) {
-    _totalPrice = bulkBuy(msg.sender, _numOfTokens, _maxPayment);
+    (_totalPrice,,) = bulkBuy(msg.sender, _numOfTokens, _maxPayment);
   }
 
   function bulkBuy(address _to, uint256 _numOfTokens, uint256 _maxPayment)
     public
-    returns (uint256 _totalPrice)
+    returns (uint256 _totalPrice, uint256 _totalCreatorFee, uint256 _totalAdminFee)
   {
     for (uint256 _i = 0; _i < _numOfTokens; _i++) {
-      _totalPrice += _buy(_to);
+      (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = _buy(_to);
+      _totalPrice += _tokenPrice;
+      _totalCreatorFee += _creatorFee;
+      _totalAdminFee += _adminFee;
     }
     if (_totalPrice > _maxPayment) {
       revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
     }
+    payToken.safeTransferFrom(msg.sender, creator, _totalCreatorFee);
+    payToken.safeTransferFrom(msg.sender, admin, _totalAdminFee);
   }
 
   function sell(uint256 _tokenId) public returns (uint256 _netProceeds) {
@@ -183,16 +191,16 @@ contract CreatorToken is ERC721Royalty {
     creatorTokenURI = _newTokenURI;
   }
 
-  function _buy(address _to) internal whenNotPaused returns (uint256 _totalPrice) {
+  function _buy(address _to) internal whenNotPaused returns (uint256, uint256, uint256) {
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = nextBuyPrice();
-    _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+    uint256 _totalPrice = _tokenPrice + _creatorFee + _adminFee;
 
     _mintAndIncrement(_to);
     purchaseTime[lastId] = block.timestamp;
     emit Bought(msg.sender, _to, lastId, _tokenPrice, _creatorFee, _adminFee);
     payToken.safeTransferFrom(msg.sender, address(this), _tokenPrice);
-    payToken.safeTransferFrom(msg.sender, creator, _creatorFee);
-    payToken.safeTransferFrom(msg.sender, admin, _adminFee);
+
+    return (_totalPrice, _creatorFee, _adminFee);
   }
 
   function _sell(uint256 _tokenId) internal whenNotPaused returns (uint256 _netProceeds) {
