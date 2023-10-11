@@ -5,7 +5,7 @@
   remappings = [
     "@openzeppelin/=lib/openzeppelin-contracts/",
     "solady/=lib/solady/src",
-    "universal-router/=lib/universal-router/contracts"
+    "universal-router/=lib/universal-router/contracts",
   ]
   solc_version = "0.8.20"
   verbosity = 3

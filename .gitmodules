@@ -7,6 +7,3 @@
 [submodule "lib/solady"]
 	path = lib/solady
 	url = https://github.com/vectorized/solady
-[submodule "lib/universal-router"]
-	path = lib/universal-router
-	url = https://github.com/Uniswap/universal-router

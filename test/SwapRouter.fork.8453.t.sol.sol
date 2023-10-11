@@ -8,6 +8,8 @@ import {CreatorToken} from "src/CreatorToken.sol";
 import {MockIncrementingBondingCurve} from "test/mocks/MockIncrementingBondingCurve.sol";
 
 contract SwapRouterTest is Test {
+  uint256 baseFork;
+
   SwapRouter router;
   address user = address(0x1);
   address tokenAddress = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
@@ -29,6 +31,10 @@ contract SwapRouterTest is Test {
   CreatorToken creatorToken;
 
   function setUp() public {
+    string memory BASE_RPC_URL = vm.envString("BASE_RPC_URL");
+    baseFork = vm.createSelectFork(BASE_RPC_URL);
+    vm.rollFork(5_129_051);
+
     payToken = ERC20(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913); // USDC on base
     bondingCurve = new MockIncrementingBondingCurve(BASE_PAY_AMOUNT);
     creatorToken =
