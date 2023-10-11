@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {SwapRouter} from "src/SwapRouter.sol";
-import {IERC20, ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {CreatorToken} from "src/CreatorToken.sol";
 import {MockIncrementingBondingCurve} from "test/mocks/MockIncrementingBondingCurve.sol";
 

@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import {BondingCurveLib} from "src/lib/BondingCurveLib.sol";
 import {IBondingCurve} from "src/interfaces/IBondingCurve.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
 
 contract CTBondingCurve is IBondingCurve {
   using SafeCast for uint256;
