@@ -20,7 +20,7 @@ contract SwapRouterTest is Test {
   uint256 creatorFee;
   uint96 creatorRoyalty;
   uint256 adminFee;
-  uint256 BASE_PAY_AMOUNT = 1e6; // Because our test token has 18 decimals
+  uint256 BASE_PAY_AMOUNT = 1e6; // Because USDC has 6 decimals
 
   string CREATOR_TOKEN_NAME = "Test Token";
   string CREATOR_TOKEN_SYMBOL = "TEST";
