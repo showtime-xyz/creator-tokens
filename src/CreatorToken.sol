@@ -112,10 +112,16 @@ contract CreatorToken is ERC721Royalty {
   }
 
   function buy(address _to, uint256 _maxPayment) public returns (uint256 _totalPrice) {
-    _totalPrice = _buy(_to);
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = _buyWithoutPayment(_to);
+    _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+
     if (_totalPrice > _maxPayment) {
       revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
     }
+
+    payToken.safeTransferFrom(msg.sender, address(this), _tokenPrice);
+    payToken.safeTransferFrom(msg.sender, creator, _creatorFee);
+    payToken.safeTransferFrom(msg.sender, admin, _adminFee);
   }
 
   function bulkBuy(uint256 _numOfTokens, uint256 _maxPayment) public returns (uint256 _totalPrice) {
@@ -126,12 +132,32 @@ contract CreatorToken is ERC721Royalty {
     public
     returns (uint256 _totalPrice)
   {
+    // variables for tracking the total amounts across purchases
+    uint256 _totalTokenPrice;
+    uint256 _totalCreatorFee;
+    uint256 _totalAdminFee;
+
+    // variables to hold per-token prices for each iteration
+    uint256 _tokenPrice;
+    uint256 _creatorFee;
+    uint256 _adminFee;
+
     for (uint256 _i = 0; _i < _numOfTokens; _i++) {
-      _totalPrice += _buy(_to);
+      (_tokenPrice, _creatorFee, _adminFee) = _buyWithoutPayment(_to);
+      _totalTokenPrice += _tokenPrice;
+      _totalCreatorFee += _creatorFee;
+      _totalAdminFee += _adminFee;
     }
+
+    _totalPrice = _totalTokenPrice + _totalCreatorFee + _totalAdminFee;
+
     if (_totalPrice > _maxPayment) {
       revert CreatorToken__MaxPaymentExceeded(_totalPrice, _maxPayment);
     }
+
+    payToken.safeTransferFrom(msg.sender, address(this), _totalTokenPrice);
+    payToken.safeTransferFrom(msg.sender, creator, _totalCreatorFee);
+    payToken.safeTransferFrom(msg.sender, admin, _totalAdminFee);
   }
 
   function sell(uint256 _tokenId) public returns (uint256 _netProceeds) {
@@ -139,10 +165,18 @@ contract CreatorToken is ERC721Royalty {
   }
 
   function sell(uint256 _tokenId, uint256 _minAcceptedPrice) public returns (uint256 _netProceeds) {
-    _netProceeds = _sell(_tokenId);
+    uint256 _creatorFee;
+    uint256 _adminFee;
+
+    (_netProceeds, _creatorFee, _adminFee) = _sellWithoutPayment(_tokenId);
+
     if (_netProceeds < _minAcceptedPrice) {
       revert CreatorToken__MinAcceptedPriceExceeded(_netProceeds, _minAcceptedPrice);
     }
+
+    payToken.safeTransfer(msg.sender, _netProceeds);
+    payToken.safeTransfer(creator, _creatorFee);
+    payToken.safeTransfer(admin, _adminFee);
   }
 
   function bulkSell(uint256[] memory _tokenIds) public returns (uint256 _netProceeds) {
@@ -153,12 +187,30 @@ contract CreatorToken is ERC721Royalty {
     public
     returns (uint256 _netProceeds)
   {
+    uint256 _totalNetProceeds;
+    uint256 _totalCreatorFee;
+    uint256 _totalAdminFee;
+
+    uint256 _creatorFee;
+    uint256 _adminFee;
+
     for (uint256 _i = 0; _i < _tokenIds.length; _i++) {
-      _netProceeds += _sell(_tokenIds[_i]);
+      (_netProceeds, _creatorFee, _adminFee) = _sellWithoutPayment(_tokenIds[_i]);
+
+      _totalNetProceeds += _netProceeds;
+      _totalCreatorFee += _creatorFee;
+      _totalAdminFee += _adminFee;
     }
+
+    _netProceeds = _totalNetProceeds;
+
     if (_netProceeds < _minAcceptedPrice) {
       revert CreatorToken__MinAcceptedPriceExceeded(_netProceeds, _minAcceptedPrice);
     }
+
+    payToken.safeTransfer(msg.sender, _netProceeds);
+    payToken.safeTransfer(creator, _totalCreatorFee);
+    payToken.safeTransfer(admin, _totalAdminFee);
   }
 
   function updateCreator(address _newCreator) public isNotAddressZero(_newCreator) {
@@ -183,19 +235,23 @@ contract CreatorToken is ERC721Royalty {
     creatorTokenURI = _newTokenURI;
   }
 
-  function _buy(address _to) internal whenNotPaused returns (uint256 _totalPrice) {
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = priceToBuyNext();
-    _totalPrice = _tokenPrice + _creatorFee + _adminFee;
+  function _buyWithoutPayment(address _to)
+    internal
+    whenNotPaused
+    returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee)
+  {
+    (_tokenPrice, _creatorFee, _adminFee) = priceToBuyNext();
 
     _mintAndIncrement(_to);
     purchaseTime[lastId] = block.timestamp;
     emit Bought(msg.sender, _to, lastId, _tokenPrice, _creatorFee, _adminFee);
-    payToken.safeTransferFrom(msg.sender, address(this), _tokenPrice);
-    payToken.safeTransferFrom(msg.sender, creator, _creatorFee);
-    payToken.safeTransferFrom(msg.sender, admin, _adminFee);
   }
 
-  function _sell(uint256 _tokenId) internal whenNotPaused returns (uint256 _netProceeds) {
+  function _sellWithoutPayment(uint256 _tokenId)
+    internal
+    whenNotPaused
+    returns (uint256 _netProceeds, uint256 _creatorFee, uint256 _adminFee)
+  {
     if (msg.sender != ownerOf(_tokenId)) {
       revert CreatorToken__CallerIsNotOwner(_tokenId, ownerOf(_tokenId), msg.sender);
     }
@@ -209,16 +265,13 @@ contract CreatorToken is ERC721Royalty {
       (REFERRER == address(0) && totalSupply == 1) || (REFERRER != address(0) && totalSupply == 2);
     if (_isOneOfLastTokens) revert CreatorToken__LastTokensCannotBeSold(totalSupply);
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = priceToSellNext();
+    uint256 _tokenPrice;
+    (_tokenPrice, _creatorFee, _adminFee) = priceToSellNext();
     _netProceeds = _tokenPrice - _creatorFee - _adminFee;
 
     transferFrom(msg.sender, address(this), _tokenId);
     _burnAndDecrement(_tokenId);
     emit Sold(msg.sender, _tokenId, _tokenPrice, _creatorFee, _adminFee);
-
-    payToken.safeTransfer(creator, _creatorFee);
-    payToken.safeTransfer(msg.sender, _netProceeds);
-    payToken.safeTransfer(admin, _adminFee);
   }
 
   function pause(bool _pauseState) public onlyCreatorOrAdmin(msg.sender) {
