@@ -64,11 +64,15 @@ contract SwapRouterTest is Test {
     (_amountIn,,,) = IQuoterV2(quoterV2Address).quoteExactOutputSingle(params);
   }
 
-  function test_BuyWithEth(address _buyer) public {
+  function _assumeSafeBuyer(address _buyer) public view {
     vm.assume(
       _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
         && _buyer != admin && _buyer != referrer
     );
+  }
+
+  function test_BuyWithEth(address _buyer) public {
+    _assumeSafeBuyer(_buyer);
     uint256 _originalBuyerBalanceOfCreatorTokens = creatorToken.balanceOf(_buyer);
     uint256 _originalPayTokenBalanceOfCreatorTokenContract =
       payToken.balanceOf(address(creatorToken));
@@ -83,7 +87,7 @@ contract SwapRouterTest is Test {
     vm.deal(_buyer, _amountIn);
 
     vm.prank(_buyer);
-    router.buyWithEth{value: _amountIn}(address(creatorToken), _buyer, _amountOut);
+    router.buyWithEth{value: _amountIn}(address(creatorToken), _amountOut);
 
     assertEq(_buyer.balance, 0);
     assertEq(
@@ -118,11 +122,62 @@ contract SwapRouterTest is Test {
     );
   }
 
-  function test_BulkBuyWithEth(address _buyer, uint256 _numOfTokens) public {
-    vm.assume(
-      _buyer != address(0) && _buyer != address(creatorToken) && _buyer != creator
-        && _buyer != admin && _buyer != referrer
+  function test_BuyWithEthWithReceiver(address _buyer, address _receiver) public {
+    _assumeSafeBuyer(_buyer);
+    _assumeSafeBuyer(_receiver);
+    vm.assume(_buyer != _receiver);
+
+    uint256 _originalReceiverBalanceOfCreatorTokens = creatorToken.balanceOf(_receiver);
+    uint256 _originalPayTokenBalanceOfCreatorTokenContract =
+      payToken.balanceOf(address(creatorToken));
+    uint256 _originalPayTokenBalanceOfCreator = payToken.balanceOf(creator);
+    uint256 _originalPayTokenBalanceOfAdmin = payToken.balanceOf(admin);
+    uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
+
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
+    uint256 _amountOut = _tokenPrice + _creatorFee + _adminFee;
+    uint256 _amountIn = quote(_amountOut);
+
+    vm.deal(_buyer, _amountIn);
+
+    vm.prank(_buyer);
+    router.buyWithEth{value: _amountIn}(address(creatorToken), _receiver, _amountOut);
+
+    assertEq(_buyer.balance, 0);
+    assertEq(
+      creatorToken.balanceOf(_receiver),
+      _originalReceiverBalanceOfCreatorTokens + 1,
+      "test_BuyWithEthWithReceiver: Receiver balance of creator tokens mismatch"
     );
+    assertEq(
+      creatorToken.ownerOf(creatorToken.lastId()),
+      _receiver,
+      "test_BuyWithEthWithReceiver: Receiver is not owner of token"
+    );
+    assertEq(
+      payToken.balanceOf(address(creatorToken)),
+      _originalPayTokenBalanceOfCreatorTokenContract + _tokenPrice,
+      "test_BuyWithEthWithReceiver: Creator token contract balance mismatch"
+    );
+    assertEq(
+      creatorToken.totalSupply(),
+      _originalCreatorTokenSupply + 1,
+      "test_BuyWithEthWithReceiver: Creator token supply mismatch"
+    );
+    assertEq(
+      payToken.balanceOf(creator),
+      _originalPayTokenBalanceOfCreator + _creatorFee,
+      "test_BuyWithEthWithReceiver: Creator balance mismatch"
+    );
+    assertEq(
+      payToken.balanceOf(admin),
+      _originalPayTokenBalanceOfAdmin + _adminFee,
+      "test_BuyWithEthWithReceiver: Admin balance mismatch"
+    );
+  }
+
+  function test_BulkBuyWithEth(address _buyer, uint256 _numOfTokens) public {
+    _assumeSafeBuyer(_buyer);
     _numOfTokens = bound(_numOfTokens, 1, 10);
     uint256 _originalBuyerBalanceOfCreatorTokens = creatorToken.balanceOf(_buyer);
     uint256 _originalPayTokenBalanceOfCreatorTokenContract =
@@ -139,40 +194,96 @@ contract SwapRouterTest is Test {
     vm.deal(_buyer, _amountIn);
 
     vm.prank(_buyer);
-    router.bulkBuyWithEth{value: _amountIn}(
-      address(creatorToken), _buyer, _numOfTokens, (_amountOut)
-    );
+    router.bulkBuyWithEth{value: _amountIn}(address(creatorToken), _numOfTokens, (_amountOut));
 
     assertEq(_buyer.balance, 0);
     assertEq(
       creatorToken.balanceOf(_buyer),
       _originalBuyerBalanceOfCreatorTokens + _numOfTokens,
-      "test_BuyWithEth: Buyer balance of creator tokens mismatch"
+      "test_BulkBuyWithEth: Buyer balance of creator tokens mismatch"
     );
     assertEq(
       creatorToken.ownerOf(creatorToken.lastId()),
       _buyer,
-      "test_BuyWithEth: Buyer is not owner of token"
+      "test_BulkBuyWithEth: Buyer is not owner of token"
     );
     assertEq(
       payToken.balanceOf(address(creatorToken)),
       _originalPayTokenBalanceOfCreatorTokenContract + _tokenPrice,
-      "test_BuyWithEth: Creator token contract balance mismatch"
+      "test_BulkBuyWithEth: Creator token contract balance mismatch"
     );
     assertEq(
       creatorToken.totalSupply(),
       _originalCreatorTokenSupply + _numOfTokens,
-      "test_BuyWithEth: Creator token supply mismatch"
+      "test_BulkBuyWithEth: Creator token supply mismatch"
     );
     assertEq(
       payToken.balanceOf(creator),
       _originalPayTokenBalanceOfCreator + _creatorFee,
-      "test_BuyWithEth: Creator balance mismatch"
+      "test_BulkBuyWithEth: Creator balance mismatch"
     );
     assertEq(
       payToken.balanceOf(admin),
       _originalPayTokenBalanceOfAdmin + _adminFee,
-      "test_BuyWithEth: Admin balance mismatch"
+      "test_BulkBuyWithEth: Admin balance mismatch"
+    );
+  }
+
+  function test_BulkBuyWithEthWithReceiver(address _buyer, address _receiver, uint256 _numOfTokens)
+    public
+  {
+    _assumeSafeBuyer(_buyer);
+    _assumeSafeBuyer(_receiver);
+    vm.assume(_buyer != _receiver);
+    _numOfTokens = bound(_numOfTokens, 1, 10);
+    uint256 _originalReceiverBalanceOfCreatorTokens = creatorToken.balanceOf(_receiver);
+    uint256 _originalPayTokenBalanceOfCreatorTokenContract =
+      payToken.balanceOf(address(creatorToken));
+    uint256 _originalPayTokenBalanceOfCreator = payToken.balanceOf(creator);
+    uint256 _originalPayTokenBalanceOfAdmin = payToken.balanceOf(admin);
+    uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
+
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) =
+      creatorToken.priceToBuyNext(_numOfTokens);
+
+    uint256 _amountIn = quote(_tokenPrice + _creatorFee + _adminFee);
+    vm.deal(_buyer, _amountIn);
+
+    vm.prank(_buyer);
+    router.bulkBuyWithEth{value: _amountIn}(
+      address(creatorToken), _receiver, _numOfTokens, (_tokenPrice + _creatorFee + _adminFee)
+    );
+
+    assertEq(_buyer.balance, 0);
+    assertEq(
+      creatorToken.balanceOf(_receiver),
+      _originalReceiverBalanceOfCreatorTokens + _numOfTokens,
+      "test_BulkBuyWithEthWithReceiver: Receiver balance of creator tokens mismatch"
+    );
+    assertEq(
+      creatorToken.ownerOf(creatorToken.lastId()),
+      _receiver,
+      "test_BulkBuyWithEthWithReceiver: Receiver is not owner of token"
+    );
+    assertEq(
+      payToken.balanceOf(address(creatorToken)),
+      _originalPayTokenBalanceOfCreatorTokenContract + _tokenPrice,
+      "test_BulkBuyWithEthWithReceiver: Creator token contract balance mismatch"
+    );
+    assertEq(
+      creatorToken.totalSupply(),
+      _originalCreatorTokenSupply + _numOfTokens,
+      "test_BulkBuyWithEthWithReceiver: Creator token supply mismatch"
+    );
+    assertEq(
+      payToken.balanceOf(creator),
+      _originalPayTokenBalanceOfCreator + _creatorFee,
+      "test_BulkBuyWithEthWithReceiver: Creator balance mismatch"
+    );
+    assertEq(
+      payToken.balanceOf(admin),
+      _originalPayTokenBalanceOfAdmin + _adminFee,
+      "test_BulkBuyWithEthWithReceiver: Admin balance mismatch"
     );
   }
 }
