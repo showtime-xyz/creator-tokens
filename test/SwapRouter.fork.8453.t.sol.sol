@@ -47,20 +47,7 @@ contract SwapRouterTest is Test {
     vm.label(address(bondingCurve), "bondingCurve contract");
     vm.label(address(creatorToken), "creatorToken contract");
     vm.label(address(router), "router contract");
-
-    // (address _referrer, uint256 _creatorFee, uint96 _creatorRoyalty, uint256 _adminFee) =
-    //   deployConfig();
-    // referrer = _referrer;
-    // creatorFee = _creatorFee;
-    // creatorRoyalty = _creatorRoyalty;
-    // adminFee = _adminFee;
   }
-
-  // function deployConfig()
-  //   internal
-  //   pure
-  //   virtual
-  //   returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee);
 
   // Check Uniswap Docs: https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2
   function quote(uint256 _amountOut) public returns (uint256 _amountIn) {
@@ -189,69 +176,3 @@ contract SwapRouterTest is Test {
     );
   }
 }
-
-// contract ConfigWithReferrerAndStandardFees is SwapRouterTest {
-//   function deployConfig()
-//     internal
-//     pure
-//     override
-//     returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
-//   {
-//     return (address(0xaceface), 700, 1000, 300);
-//   }
-// }
-
-// contract ConfigWithReferrerAndMaxFees is SwapRouterTest {
-//   function deployConfig()
-//     internal
-//     pure
-//     override
-//     returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
-//   {
-//     return (address(0xaceface), 2500, 2500, 2500);
-//   }
-// }
-
-// contract ConfigWithReferrerAndZeroFees is SwapRouterTest {
-//   function deployConfig()
-//     internal
-//     pure
-//     override
-//     returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
-//   {
-//     return (address(0xaceface), 0, 0, 0);
-//   }
-// }
-
-// contract ConfigWithoutReferrerAndStandardFees is SwapRouterTest {
-//   function deployConfig()
-//     internal
-//     pure
-//     override
-//     returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
-//   {
-//     return (address(0), 700, 1000, 300);
-//   }
-// }
-
-// contract ConfigWithoutReferrerAndMaxFees is SwapRouterTest {
-//   function deployConfig()
-//     internal
-//     pure
-//     override
-//     returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
-//   {
-//     return (address(0), 2500, 2500, 2500);
-//   }
-// }
-
-// contract ConfigWithoutReferrerAndZeroFees is SwapRouterTest {
-//   function deployConfig()
-//     internal
-//     pure
-//     override
-//     returns (address referrer, uint256 creatorFee, uint96 creatorRoyalty, uint256 adminFee)
-//   {
-//     return (address(0), 0, 0, 0);
-//   }
-// }
