@@ -33,4 +33,14 @@ interface ICreatorToken {
   function tokenURI(uint256) external view returns (string memory);
 
   function updateTokenURI(string memory _newTokenURI) external;
+
+  function priceToBuyNext()
+    external
+    view
+    returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee);
+
+  function priceToBuyNext(uint256 _numOfTokens)
+    external
+    view
+    returns (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee);
 }
