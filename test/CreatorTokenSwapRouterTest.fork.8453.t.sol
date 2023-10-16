@@ -2,16 +2,16 @@
 pragma solidity 0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {SwapRouter} from "src/SwapRouter.sol";
+import {CreatorTokenSwapRouter} from "src/CreatorTokenSwapRouter.sol";
 import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {CreatorToken} from "src/CreatorToken.sol";
 import {MockIncrementingBondingCurve} from "test/mocks/MockIncrementingBondingCurve.sol";
 import {IQuoterV2} from "test/interfaces/IQuoterV2.sol";
 
-contract SwapRouterTest is Test {
+contract CreatorTokenSwapRouterTest is Test {
   uint256 baseFork;
 
-  SwapRouter router;
+  CreatorTokenSwapRouter router;
   address constant WETH_ADDRESS = 0x4200000000000000000000000000000000000006;
   address constant USDC_ADDRESS = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
   uint256 constant BASE_PAY_AMOUNT = 1e6; // Because USDC has 6 decimals
@@ -21,6 +21,7 @@ contract SwapRouterTest is Test {
   string CREATOR_TOKEN_URI = "URI";
 
   address quoterV2Address = 0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a; // On base
+  address buyer = 0x637C1Ec1d205a4E7a79c9CE4Bd100CD1d19E6080; // An address that can receive eth
   address creator = vm.addr(1);
   address admin = vm.addr(2);
   address referrer;
@@ -35,13 +36,12 @@ contract SwapRouterTest is Test {
   function setUp() public {
     string memory BASE_RPC_URL = vm.envString("BASE_RPC_URL");
     baseFork = vm.createSelectFork(BASE_RPC_URL, 5_129_051);
-    // vm.rollFork(5_129_051);
 
     payToken = ERC20(USDC_ADDRESS); // USDC on base
     bondingCurve = new MockIncrementingBondingCurve(BASE_PAY_AMOUNT);
     creatorToken =
     new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, creatorRoyalty, admin, adminFee, referrer, payToken, bondingCurve);
-    router = new SwapRouter();
+    router = new CreatorTokenSwapRouter();
 
     vm.label(address(payToken), "payToken contract");
     vm.label(address(bondingCurve), "bondingCurve contract");
@@ -122,10 +122,14 @@ contract SwapRouterTest is Test {
     );
   }
 
-  function test_BuyWithEthWithReceiver(address _buyer, address _receiver) public {
-    _assumeSafeBuyer(_buyer);
+  function test_BuyWithEthWithReceiverAndSendExtraEth(address _receiver, uint256 _amountIn) public {
     _assumeSafeBuyer(_receiver);
-    vm.assume(_buyer != _receiver);
+    vm.assume(_receiver != buyer);
+
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
+    uint256 _amountOut = _tokenPrice + _creatorFee + _adminFee;
+    uint256 _amountInQuote = quote(_amountOut);
+    _amountIn = bound(_amountIn, _amountInQuote + 1, 100 ether);
 
     uint256 _originalReceiverBalanceOfCreatorTokens = creatorToken.balanceOf(_receiver);
     uint256 _originalPayTokenBalanceOfCreatorTokenContract =
@@ -134,16 +138,11 @@ contract SwapRouterTest is Test {
     uint256 _originalPayTokenBalanceOfAdmin = payToken.balanceOf(admin);
     uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) = creatorToken.priceToBuyNext();
-    uint256 _amountOut = _tokenPrice + _creatorFee + _adminFee;
-    uint256 _amountIn = quote(_amountOut);
-
-    vm.deal(_buyer, _amountIn);
-
-    vm.prank(_buyer);
+    vm.deal(buyer, _amountIn);
+    vm.prank(buyer);
     router.buyWithEth{value: _amountIn}(address(creatorToken), _receiver, _amountOut);
 
-    assertEq(_buyer.balance, 0);
+    assertEq(buyer.balance, _amountIn - _amountInQuote);
     assertEq(
       creatorToken.balanceOf(_receiver),
       _originalReceiverBalanceOfCreatorTokens + 1,
@@ -176,35 +175,35 @@ contract SwapRouterTest is Test {
     );
   }
 
-  function test_BulkBuyWithEth(address _buyer, uint256 _numOfTokens) public {
-    _assumeSafeBuyer(_buyer);
+  function test_BulkBuyWithEthAndSendExtraEth(uint256 _numOfTokens, uint256 _amountIn) public {
     _numOfTokens = bound(_numOfTokens, 1, 10);
-    uint256 _originalBuyerBalanceOfCreatorTokens = creatorToken.balanceOf(_buyer);
+
+    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) =
+      creatorToken.priceToBuyNext(_numOfTokens);
+    uint256 _amountOut = _tokenPrice + _creatorFee + _adminFee;
+    uint256 _amountInQuote = quote(_amountOut);
+    _amountIn = bound(_amountIn, _amountInQuote + 1, 100 ether);
+
+    uint256 _originalBuyerBalanceOfCreatorTokens = creatorToken.balanceOf(buyer);
     uint256 _originalPayTokenBalanceOfCreatorTokenContract =
       payToken.balanceOf(address(creatorToken));
     uint256 _originalPayTokenBalanceOfCreator = payToken.balanceOf(creator);
     uint256 _originalPayTokenBalanceOfAdmin = payToken.balanceOf(admin);
     uint256 _originalCreatorTokenSupply = creatorToken.totalSupply();
 
-    (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) =
-      creatorToken.priceToBuyNext(_numOfTokens);
-
-    uint256 _amountOut = _tokenPrice + _creatorFee + _adminFee;
-    uint256 _amountIn = quote(_amountOut);
-    vm.deal(_buyer, _amountIn);
-
-    vm.prank(_buyer);
+    vm.deal(buyer, _amountIn);
+    vm.prank(buyer);
     router.bulkBuyWithEth{value: _amountIn}(address(creatorToken), _numOfTokens, (_amountOut));
 
-    assertEq(_buyer.balance, 0);
+    assertEq(buyer.balance, _amountIn - _amountInQuote);
     assertEq(
-      creatorToken.balanceOf(_buyer),
+      creatorToken.balanceOf(buyer),
       _originalBuyerBalanceOfCreatorTokens + _numOfTokens,
       "test_BulkBuyWithEth: Buyer balance of creator tokens mismatch"
     );
     assertEq(
       creatorToken.ownerOf(creatorToken.lastId()),
-      _buyer,
+      buyer,
       "test_BulkBuyWithEth: Buyer is not owner of token"
     );
     assertEq(
