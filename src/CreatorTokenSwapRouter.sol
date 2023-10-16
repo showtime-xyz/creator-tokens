@@ -31,7 +31,7 @@ contract CreatorTokenSwapRouter {
 
   function buyWithEth(address _creatorToken, address _to, uint256 _maxPayment) public payable {
     _swapEthForUSDC(_creatorToken, 1, msg.value);
-    IERC20(USDC_ADDRESS).approve(address(_creatorToken), type(uint256).max);
+    _approveCreatorToken(_creatorToken, _maxPayment);
     ICreatorToken(_creatorToken).buy(_to, _maxPayment);
   }
 
@@ -49,7 +49,7 @@ contract CreatorTokenSwapRouter {
     uint256 _maxPayment
   ) public payable {
     _swapEthForUSDC(_creatorToken, _numOfTokens, msg.value);
-    IERC20(USDC_ADDRESS).approve(address(_creatorToken), type(uint256).max);
+    _approveCreatorToken(_creatorToken, _maxPayment);
     ICreatorToken(_creatorToken).bulkBuy(_to, _numOfTokens, _maxPayment);
   }
 
@@ -68,5 +68,11 @@ contract CreatorTokenSwapRouter {
 
     // // Execute on the UniversalRouter
     UNIVERSAL_ROUTER.execute{value: _amountIn}(COMMANDS, inputs, block.timestamp + 60);
+  }
+
+  function _approveCreatorToken(address _creatorToken, uint256 _maxPayment) private {
+    if (IERC20(USDC_ADDRESS).allowance(address(this), address(_creatorToken)) < _maxPayment) {
+      IERC20(USDC_ADDRESS).approve(address(_creatorToken), type(uint256).max);
+    }
   }
 }
