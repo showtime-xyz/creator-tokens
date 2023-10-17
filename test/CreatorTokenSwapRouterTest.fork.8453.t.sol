@@ -89,7 +89,7 @@ contract CreatorTokenSwapRouterTest is Test {
     vm.prank(_buyer);
     router.buyWithEth{value: _amountIn}(address(creatorToken), _amountOut);
 
-    assertEq(_buyer.balance, 0);
+    assertEq(_buyer.balance, 0, "test_BuyWithEth: Buyer Eth balance mismatch");
     assertEq(
       creatorToken.balanceOf(_buyer),
       _originalBuyerBalanceOfCreatorTokens + 1,
@@ -142,7 +142,11 @@ contract CreatorTokenSwapRouterTest is Test {
     vm.prank(buyer);
     router.buyWithEth{value: _amountIn}(address(creatorToken), _receiver, _amountOut);
 
-    assertEq(buyer.balance, _amountIn - _amountInQuote);
+    assertEq(
+      buyer.balance,
+      _amountIn - _amountInQuote,
+      "test_BuyWithEthWithReceiver: Buyer Eth balance mismatch"
+    );
     assertEq(
       creatorToken.balanceOf(_receiver),
       _originalReceiverBalanceOfCreatorTokens + 1,
@@ -195,7 +199,9 @@ contract CreatorTokenSwapRouterTest is Test {
     vm.prank(buyer);
     router.bulkBuyWithEth{value: _amountIn}(address(creatorToken), _numOfTokens, (_amountOut));
 
-    assertEq(buyer.balance, _amountIn - _amountInQuote);
+    assertEq(
+      buyer.balance, _amountIn - _amountInQuote, "test_BulkBuyWithEth: Buyer Eth balance mismatch"
+    );
     assertEq(
       creatorToken.balanceOf(buyer),
       _originalBuyerBalanceOfCreatorTokens + _numOfTokens,
@@ -253,7 +259,7 @@ contract CreatorTokenSwapRouterTest is Test {
       address(creatorToken), _receiver, _numOfTokens, (_tokenPrice + _creatorFee + _adminFee)
     );
 
-    assertEq(_buyer.balance, 0);
+    assertEq(_buyer.balance, 0, "test_BulkBuyWithEthWithReceiver: Buyer Eth balance mismatch");
     assertEq(
       creatorToken.balanceOf(_receiver),
       _originalReceiverBalanceOfCreatorTokens + _numOfTokens,
