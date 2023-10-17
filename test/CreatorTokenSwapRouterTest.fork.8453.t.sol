@@ -12,6 +12,7 @@ contract CreatorTokenSwapRouterTest is Test {
   uint256 baseFork;
 
   CreatorTokenSwapRouter router;
+  address constant UNIVERSAL_ROUTER_ADDRESS = 0x198EF79F1F515F02dFE9e3115eD9fC07183f02fC;
   address constant WETH_ADDRESS = 0x4200000000000000000000000000000000000006;
   address constant USDC_ADDRESS = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
   uint256 constant BASE_PAY_AMOUNT = 1e6; // Because USDC has 6 decimals
@@ -41,7 +42,7 @@ contract CreatorTokenSwapRouterTest is Test {
     bondingCurve = new MockIncrementingBondingCurve(BASE_PAY_AMOUNT);
     creatorToken =
     new CreatorToken(CREATOR_TOKEN_NAME, CREATOR_TOKEN_SYMBOL, CREATOR_TOKEN_URI, creator, creatorFee, creatorRoyalty, admin, adminFee, referrer, payToken, bondingCurve);
-    router = new CreatorTokenSwapRouter();
+    router = new CreatorTokenSwapRouter(UNIVERSAL_ROUTER_ADDRESS, WETH_ADDRESS, USDC_ADDRESS);
 
     vm.label(address(payToken), "payToken contract");
     vm.label(address(bondingCurve), "bondingCurve contract");

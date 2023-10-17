@@ -6,11 +6,9 @@ import {ICreatorToken} from "src/interfaces/ICreatorToken.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 
 contract CreatorTokenSwapRouter {
-  IUniversalRouter private constant UNIVERSAL_ROUTER =
-    IUniversalRouter(0x198EF79F1F515F02dFE9e3115eD9fC07183f02fC); // Base
-
-  address public constant WETH_ADDRESS = 0x4200000000000000000000000000000000000006;
-  address public constant USDC_ADDRESS = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+  IUniversalRouter private immutable UNIVERSAL_ROUTER;
+  address public immutable WETH_ADDRESS;
+  address public immutable USDC_ADDRESS;
 
   // for WRAP_ETH, V3_SWAP_EXACT_OUT, and UNWRAP_WETH
   bytes private constant COMMANDS =
@@ -18,8 +16,15 @@ contract CreatorTokenSwapRouter {
   bytes3 private constant LOW_FEE_TIER = bytes3(uint24(500));
 
   // WETH -> USDC, order is switched because of V3_SWAP_EXACT_OUT
-  bytes private path =
-    bytes.concat(bytes20(address(USDC_ADDRESS)), LOW_FEE_TIER, bytes20(address(WETH_ADDRESS)));
+  bytes private path;
+
+  constructor(address _universalRouter, address _wethAddress, address _usdcAddress) {
+    UNIVERSAL_ROUTER = IUniversalRouter(_universalRouter);
+    WETH_ADDRESS = _wethAddress;
+    USDC_ADDRESS = _usdcAddress;
+    path =
+      bytes.concat(bytes20(address(USDC_ADDRESS)), LOW_FEE_TIER, bytes20(address(WETH_ADDRESS)));
+  }
 
   // You can get a quote for the amount of ETH you have to pay to buy a creator token by calling
   // Uniswap's `QuoterV2` contract off-chain.
