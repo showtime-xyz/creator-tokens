@@ -25,6 +25,14 @@ _**Please read the full README before using this template.**_
 forge script Deploy --sig "run(address)" <ShowtimeVerifier Contract Address> --fork-url $RPC_URL_OF_CHOICE --private-key <private key> --broadcast
 ```
 
+### Deploying `CreatorTokenSwapRouter` using deploy script
+
+1. Find Uniswap's `universalRouter`, WETH, and USDC addresses for the desired network.
+
+```bash
+forge script Deploy --sig "deployCreatorTokenSwapRouter(address,address,address)" <universalRouter> <WETH> <USDC> --fork-url $RPC_URL_OF_CHOICE --private-key <private key> --broadcast
+```
+
 To use this template, use one of the below approaches:
 
 1. Run `forge init --template ScopeLift/foundry-template` in an empty directory.

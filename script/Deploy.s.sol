@@ -7,6 +7,7 @@ import {Script} from "forge-std/Script.sol";
 import {console2} from "forge-std/console2.sol";
 import {CreatorTokenFactory} from "src/CreatorTokenFactory.sol";
 import {ITestableShowtimeVerifier} from "test/interfaces/ITestableShowtimeVerifier.sol";
+import {CreatorTokenSwapRouter} from "src/CreatorTokenSwapRouter.sol";
 
 contract Deploy is Script {
   /// @notice Deploy the contract
@@ -23,5 +24,17 @@ contract Deploy is Script {
     require(creatorTokenFactory.domainSeparator() == _domainSeparator, "Domain separator Mismatch");
 
     console2.log("Deployed contract address %s", address(creatorTokenFactory));
+  }
+
+  function deployCreatorTokenSwapRouter(
+    address _universalRouter,
+    address _wethAddress,
+    address _usdcAddress
+  ) public {
+    vm.broadcast();
+
+    CreatorTokenSwapRouter creatorTokenSwapRouter =
+      new CreatorTokenSwapRouter(_universalRouter, _wethAddress, _usdcAddress);
+    console2.log("Deployed contract address %s", address(creatorTokenSwapRouter));
   }
 }
