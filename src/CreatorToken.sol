@@ -74,7 +74,7 @@ contract CreatorToken is ERC721Royalty {
   /// @param paymentAmount Amount of USDC paid for the token excluding fees.
   /// @param creatorFee Amount of USDC paid to the creator.
   /// @param adminFee Amount of USDC paid to the admin.
-  event Bought( // the address that paid for the token
+  event Bought(
     address indexed payer,
     address indexed receiver,
     uint256 indexed tokenId,
