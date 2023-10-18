@@ -19,7 +19,6 @@ import {IBondingCurve} from "src/interfaces/IBondingCurve.sol";
 /// deployment.
 ///   - Fee Mechanism: Defines separate fees for both the creator and an admin, which are taken
 /// from primary and secondary sales.
-///   - Holding Time: Enforces a minimum holding time before a token can be sold.
 /// @dev This contract supports ERC-2981 royalty standard.
 contract CreatorToken is ERC721Royalty {
   using SafeERC20 for IERC20;
@@ -34,30 +33,48 @@ contract CreatorToken is ERC721Royalty {
   error CreatorToken__MinHoldingTimeNotReached(uint256 holdingTime, uint256 minHoldingTime);
   error CreatorToken__ContractIsPaused();
 
+  /// @notice ID of the last token minted.
   uint256 public lastId;
+  /// @notice Total supply of the creator tokens.
   uint256 public totalSupply;
+  /// @notice Address of the creator of the creator token.
   address public creator;
+  /// @notice Address of the admin of the creator token.
   address public admin;
+  /// @notice Address of the referrer, if any.
   address public immutable REFERRER;
+  /// @notice State indicating whether the contract is paused.
   bool public isPaused;
+  /// @notice URI pointing to the metadata for the creator token.
   string private creatorTokenURI;
+  /// @notice ERC20 token used for payments in the contract.
   IERC20 public payToken;
+  /// @notice Bonding curve contract used to determine token prices.
   IBondingCurve public immutable BONDING_CURVE;
 
-  /// @dev Constant to represent percentages in basis points.
+  /// @notice Constant to represent percentages in basis points.
   uint256 constant BIP = 10_000;
+  /// @notice Creator fee taken as a percentage when tokens are bought, in basis points.
   uint256 public immutable CREATOR_FEE_BIPS;
+  /// @notice Royalty fee for the creator, in basis points.
   uint96 public immutable CREATOR_ROYALTY_BIPS;
+  /// @notice Admin fee taken for the admin as a percentage, in basis points.
   uint256 public immutable ADMIN_FEE_BIPS;
-  /// @dev Maximum allowed fee in basis points.
+  /// @notice Maximum allowed fee in basis points.
   uint256 private constant MAX_FEE = 2500; // 25% in bips
-  /// @dev Minimum time a user must hold a token before selling, in blocks.
+  /// @notice Minimum time a user must hold a token before selling, in blocks.
   uint256 private constant MIN_HOLDING_TIME = 60;
-  /// @dev Mapping to track purchase time of tokens.
+  /// @notice Mapping to track purchase time of tokens.
   mapping(uint256 tokenId => uint256 blockTimestamp) internal purchaseTime;
 
-  /// @dev Event emitted when a new token is bought.
-  event Bought(
+  /// @notice Event emitted when a new token is bought.
+  /// @param payer Address that paid for the token.
+  /// @param receiver Address that received the token.
+  /// @param tokenId ID of the token.
+  /// @param paymentAmount Amount of USDC paid for the token excluding fees.
+  /// @param creatorFee Amount of USDC paid to the creator.
+  /// @param adminFee Amount of USDC paid to the admin.
+  event Bought( // the address that paid for the token
     address indexed payer,
     address indexed receiver,
     uint256 indexed tokenId,
@@ -66,7 +83,12 @@ contract CreatorToken is ERC721Royalty {
     uint256 adminFee
   );
 
-  /// @dev Event emitted when a token is sold.
+  /// @notice Event emitted when a token is sold.
+  /// @param seller Address that sold the token.
+  /// @param tokenId ID of the token.
+  /// @param salePrice Amount of USDC received for the token excluding fees.
+  /// @param creatorFee Amount of USDC paid to the creator.
+  /// @param adminFee Amount of USDC paid to the admin.
   event Sold(
     address indexed seller,
     uint256 indexed tokenId,
@@ -75,25 +97,25 @@ contract CreatorToken is ERC721Royalty {
     uint256 adminFee
   );
 
-  /// @dev Event emitted when the contract pause state is toggled.
+  /// @notice Event emitted when the contract pause state is toggled.
   event ToggledPause(bool oldPauseState, bool newPauseState, address caller);
 
-  /// @dev Event emitted when the creator is updated.
+  /// @notice Event emitted when the creator is updated.
   event CreatorUpdated(address oldCreator, address newCreator);
 
-  /// @dev Event emitted when the admin is updated.
+  /// @notice Event emitted when the admin is updated.
   event AdminUpdated(address oldAdmin, address newAdmin);
 
-  /// @dev Event emitted when the tokenURI is updated.
+  /// @notice Event emitted when the tokenURI is updated.
   event TokenURIUpdated(string oldTokenURI, string newTokenURI);
 
-  /// @dev Ensures that the given address is not the zero address.
+  /// @notice Ensures that the given address is not the zero address.
   modifier isNotAddressZero(address _address) {
     if (_address == address(0)) revert CreatorToken__AddressZeroNotAllowed();
     _;
   }
 
-  /// @dev Ensures that the caller is either the creator or the admin.
+  /// @notice Ensures that the caller is either the creator or the admin.
   modifier onlyCreatorOrAdmin(address _caller) {
     if (_caller != creator && _caller != admin) {
       revert CreatorToken__Unauthorized("not creator or admin", _caller);
@@ -101,7 +123,7 @@ contract CreatorToken is ERC721Royalty {
     _;
   }
 
-  /// @dev Ensures that the contract is not in a paused state.
+  /// @notice Ensures that the contract is not in a paused state.
   modifier whenNotPaused() {
     if (isPaused) revert CreatorToken__ContractIsPaused();
     _;
@@ -153,13 +175,15 @@ contract CreatorToken is ERC721Royalty {
   }
 
   /// @notice Purchase a token.
+  /// @dev Reverts if the total price exceeds `_maxPayment`.
   /// @param _maxPayment The maximum amount of USDC the buyer is willing to pay.
   /// @return _totalPrice The total amount of USDC paid for the creator token.
   function buy(uint256 _maxPayment) public returns (uint256 _totalPrice) {
     _totalPrice = buy(msg.sender, _maxPayment);
   }
 
-  /// @notice Purchase a token for another address.
+  /// @notice Purchase a token and mint to another address.
+  /// @dev Reverts if the total price exceeds `_maxPayment`.
   /// @param _to Address to receive the token.
   /// @param _maxPayment The maximum amount of USDC the buyer is willing to pay.
   /// @return _totalPrice The total amount of USDC paid for the creator token.
@@ -176,20 +200,20 @@ contract CreatorToken is ERC721Royalty {
     payToken.safeTransferFrom(msg.sender, admin, _adminFee);
   }
 
-  /// @notice Buy multiple creator tokens in bulk and send them to the caller.
+  /// @notice Buy multiple creator tokens in bulk and mint them to the caller.
   /// @dev The recipient of the creator tokens is the msg.sender.
   /// @param _numOfTokens Number of tokens to buy.
   /// @param _maxPayment The maximum amount of USDC the caller is willing to pay.
-  /// @return _totalPrice The total amount of USDC paid for the creator tokens.
+  /// @return _totalPrice The total amount of USDC paid for the creator tokens including fees.
   function bulkBuy(uint256 _numOfTokens, uint256 _maxPayment) public returns (uint256 _totalPrice) {
     _totalPrice = bulkBuy(msg.sender, _numOfTokens, _maxPayment);
   }
 
-  /// @notice Buy multiple tokens in bulk and send them to a specified address.
+  /// @notice Buy multiple tokens in bulk and mint to a specified address.
   /// @param _to Address where the tokens should be sent.
   /// @param _numOfTokens Number of tokens to buy.
   /// @param _maxPayment The maximum amount of USDC the caller is willing to pay.
-  /// @return _totalPrice  The total amount of USDC paid for the creator tokens.
+  /// @return _totalPrice The total amount of USDC paid for the creator tokens including fees.
   function bulkBuy(address _to, uint256 _numOfTokens, uint256 _maxPayment)
     public
     returns (uint256 _totalPrice)
@@ -225,7 +249,7 @@ contract CreatorToken is ERC721Royalty {
   /// @notice Sell a token.
   /// @dev Sets the minimum accepted proceeds to 0.
   /// @param _tokenId ID of the token to be sold.
-  /// @return _netProceeds The net proceeds from the sale in USDC.
+  /// @return _netProceeds The net proceeds from the sale in USDC after fees.
   function sell(uint256 _tokenId) public returns (uint256 _netProceeds) {
     _netProceeds = sell(_tokenId, 0);
   }
@@ -233,7 +257,7 @@ contract CreatorToken is ERC721Royalty {
   /// @notice Sell a token with a minimum accepted price.
   /// @param _tokenId ID of the token to be sold.
   /// @param _minAcceptedPrice The minimum proceed in USDC the seller is willing to accept.
-  /// @return _netProceeds The net proceeds in USDC from the sale.
+  /// @return _netProceeds The net proceeds in USDC from the sale after fees.
   function sell(uint256 _tokenId, uint256 _minAcceptedPrice) public returns (uint256 _netProceeds) {
     uint256 _creatorFee;
     uint256 _adminFee;
@@ -259,8 +283,8 @@ contract CreatorToken is ERC721Royalty {
 
   /// @notice Sell multiple tokens with a minimum accepted proceeds in USDC for the total sale.
   /// @param _tokenIds Array of token IDs to be sold.
-  /// @param _minAcceptedPrice The minimum total proceed in USDC the seller is willing to accept for
-  /// the bulk sale.
+  /// @param _minAcceptedPrice The minimum total net proceeds in USDC the seller is willing to
+  /// accept for the bulk sale.
   /// @return _netProceeds The total net proceeds from the bulk sale.
   function bulkSell(uint256[] memory _tokenIds, uint256 _minAcceptedPrice)
     public
