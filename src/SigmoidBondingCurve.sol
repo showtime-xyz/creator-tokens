@@ -5,7 +5,7 @@ import {BondingCurveLib} from "src/lib/BondingCurveLib.sol";
 import {IBondingCurve} from "src/interfaces/IBondingCurve.sol";
 import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
 
-contract CTBondingCurve is IBondingCurve {
+contract SigmoidBondingCurve is IBondingCurve {
   using SafeCast for uint256;
 
   uint128 public immutable BASE_PRICE;

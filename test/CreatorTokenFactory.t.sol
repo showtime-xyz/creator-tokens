@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {CreatorToken} from "src/CreatorToken.sol";
-import {CTBondingCurve} from "src/CTBondingCurve.sol";
+import {SigmoidBondingCurve} from "src/SigmoidBondingCurve.sol";
 import {IERC20, ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {CreatorTokenFactory, Attestation} from "src/CreatorTokenFactory.sol";
 import {
@@ -31,7 +31,7 @@ contract CreatorTokenFactoryTest is Test {
 
   event CreatorTokenDeployed(
     CreatorToken indexed creatorToken,
-    CTBondingCurve indexed bondingCurve,
+    SigmoidBondingCurve indexed bondingCurve,
     CreatorTokenFactory.DeploymentConfig config
   );
 
@@ -90,7 +90,7 @@ contract CreatorTokenFactoryTest is Test {
     assertEq(_creatorToken.REFERRER(), _config.referrer);
     assertEq(address(_creatorToken.payToken()), address(_config.payToken));
 
-    CTBondingCurve _bondingCurve = CTBondingCurve(address(_creatorToken.BONDING_CURVE()));
+    SigmoidBondingCurve _bondingCurve = SigmoidBondingCurve(address(_creatorToken.BONDING_CURVE()));
     assertEq(_bondingCurve.BASE_PRICE(), _config.basePrice);
     assertEq(_bondingCurve.INFLECTION_POINT(), _config.inflectionPoint);
     assertEq(_bondingCurve.INFLECTION_PRICE(), _config.inflectionPrice);
@@ -154,8 +154,8 @@ contract TokenDeployment is CreatorTokenFactoryTest {
     // hardcoded, pre-calculated addresses for the test config, so we can expect the event emissions
     CreatorToken preCalculatedTokenAddress =
       CreatorToken(0x037eDa3aDB1198021A9b2e88C22B464fD38db3f3);
-    CTBondingCurve preCalculatedBondingCurve =
-      CTBondingCurve(0x104fBc016F4bb334D775a19E8A6510109AC63E00);
+    SigmoidBondingCurve preCalculatedBondingCurve =
+      SigmoidBondingCurve(0x104fBc016F4bb334D775a19E8A6510109AC63E00);
 
     vm.expectEmit(true, true, true, true);
     emit CreatorTokenDeployed(preCalculatedTokenAddress, preCalculatedBondingCurve, _config);
