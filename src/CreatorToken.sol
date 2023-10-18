@@ -202,6 +202,7 @@ contract CreatorToken is ERC721Royalty {
 
   /// @notice Buy multiple creator tokens in bulk and mint them to the caller.
   /// @dev The recipient of the creator tokens is the msg.sender.
+  /// @dev Reverts if the total price exceeds `_maxPayment`.
   /// @param _numOfTokens Number of tokens to buy.
   /// @param _maxPayment The maximum amount of USDC the caller is willing to pay.
   /// @return _totalPrice The total amount of USDC paid for the creator tokens including fees.
@@ -210,6 +211,7 @@ contract CreatorToken is ERC721Royalty {
   }
 
   /// @notice Buy multiple tokens in bulk and mint them to a specified address.
+  /// @dev Reverts if the total price exceeds `_maxPayment`.
   /// @param _to Address where the tokens should be sent.
   /// @param _numOfTokens Number of tokens to buy.
   /// @param _maxPayment The maximum amount of USDC the caller is willing to pay.
@@ -248,6 +250,8 @@ contract CreatorToken is ERC721Royalty {
 
   /// @notice Sell a token.
   /// @dev Sets the minimum accepted proceeds to 0.
+  /// @dev Reverts if the token is sold before the minimum holding time.
+  /// @dev Reverts if the net proceeds from the sale are less than `_minAcceptedPrice`.
   /// @param _tokenId ID of the token to be sold.
   /// @return _netProceeds The net proceeds from the sale in USDC after fees.
   function sell(uint256 _tokenId) public returns (uint256 _netProceeds) {
@@ -255,6 +259,8 @@ contract CreatorToken is ERC721Royalty {
   }
 
   /// @notice Sell a token with a minimum accepted price.
+  /// @dev Reverts if the token is sold before the minimum holding time.
+  /// @dev Reverts if the net proceeds from the sale are less than `_minAcceptedPrice`.
   /// @param _tokenId ID of the token to be sold.
   /// @param _minAcceptedPrice The minimum proceed in USDC the seller is willing to accept.
   /// @return _netProceeds The net proceeds in USDC from the sale after fees.
@@ -275,6 +281,8 @@ contract CreatorToken is ERC721Royalty {
 
   /// @notice Sell multiple tokens in bulk.
   /// @dev Sets the minimum accepted proceeds to 0.
+  /// @dev Reverts if any of the tokens are sold before the minimum holding time.
+  /// @dev Reverts if the net proceeds from the sale are less than `_minAcceptedPrice`.
   /// @param _tokenIds Array of token IDs to be sold.
   /// @return _netProceeds The total net proceeds in USDC from the bulk sale.
   function bulkSell(uint256[] memory _tokenIds) public returns (uint256 _netProceeds) {
@@ -282,6 +290,8 @@ contract CreatorToken is ERC721Royalty {
   }
 
   /// @notice Sell multiple tokens with a minimum accepted proceeds in USDC for the total sale.
+  /// @dev Reverts if any of the tokens are sold before the minimum holding time.
+  /// @dev Reverts if the net proceeds from the sale are less than `_minAcceptedPrice`.
   /// @param _tokenIds Array of token IDs to be sold.
   /// @param _minAcceptedPrice The minimum total net proceeds in USDC the seller is willing to
   /// accept for the bulk sale.
