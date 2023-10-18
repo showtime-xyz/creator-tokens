@@ -16,13 +16,14 @@ _**Please read the full README before using this template.**_
 
 ## Usage
 
-### Deploying `CreatorTokenFactory` using deploy script
+### Deploying `CreatorTokenFactory` and `CreatorTokenSwapRouter` using deploy script
 
 1. Specify the RPC URL for the desired network in the `.env` file.
-2. Run the following command to deploy the CreatorTokenFactory contract:
+2. Find Uniswap's `universalRouter`, WETH, and USDC addresses for the desired network.
+3. Run the following command to deploy the CreatorTokenFactory contract:
 
 ```bash
-forge script Deploy --sig "run(address)" <ShowtimeVerifier Contract Address> --fork-url $RPC_URL_OF_CHOICE --private-key <private key> --broadcast
+forge script Deploy --sig "run(address)" <ShowtimeVerifier Contract Address> <universalRouter> <WETH> <USDC> --fork-url $RPC_URL_OF_CHOICE --private-key <private key> --broadcast
 ```
 
 To use this template, use one of the below approaches:
