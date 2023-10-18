@@ -209,7 +209,7 @@ contract CreatorToken is ERC721Royalty {
     _totalPrice = bulkBuy(msg.sender, _numOfTokens, _maxPayment);
   }
 
-  /// @notice Buy multiple tokens in bulk and mint to a specified address.
+  /// @notice Buy multiple tokens in bulk and mint them to a specified address.
   /// @param _to Address where the tokens should be sent.
   /// @param _numOfTokens Number of tokens to buy.
   /// @param _maxPayment The maximum amount of USDC the caller is willing to pay.
