@@ -2,21 +2,21 @@
 pragma solidity 0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {CTBondingCurve} from "src/CTBondingCurve.sol";
+import {SigmoidBondingCurve} from "src/SigmoidBondingCurve.sol";
 
-contract CTBondingCurveTest is Test {
+contract SigmoidBondingCurveTest is Test {
   function setUp() public {}
 }
 
-contract Deployment is CTBondingCurveTest {
+contract Deployment is SigmoidBondingCurveTest {
   function test_BondingCurveIsConfiguredAtDeployment(
     uint128 _basePrice,
     uint128 _linearPriceSlope,
     uint128 _inflectionPrice,
     uint32 _inflectionPoint
   ) public {
-    CTBondingCurve _curve =
-      new CTBondingCurve(_basePrice, _linearPriceSlope, _inflectionPrice, _inflectionPoint);
+    SigmoidBondingCurve _curve =
+      new SigmoidBondingCurve(_basePrice, _linearPriceSlope, _inflectionPrice, _inflectionPoint);
 
     assertEq(_curve.BASE_PRICE(), _basePrice);
     assertEq(_curve.LINEAR_PRICE_SLOPE(), _linearPriceSlope);
@@ -25,15 +25,15 @@ contract Deployment is CTBondingCurveTest {
   }
 }
 
-contract CurveMath is CTBondingCurveTest {
+contract CurveMath is SigmoidBondingCurveTest {
   function test_DiscreetCurveParametersWorkAsExpectedRev1() public {
     // Price parameters are in 6 decimals e.g. like USDC
     uint128 _basePrice = 1e6; // c = 1
     uint128 _linearPriceSlope = 0.1e6; // b = .1
     uint128 _inflectionPrice = 845e6; // h = 845
     uint32 _inflectionPoint = 2000; // g = 2000
-    CTBondingCurve _curve =
-      new CTBondingCurve(_basePrice, _linearPriceSlope, _inflectionPrice, _inflectionPoint);
+    SigmoidBondingCurve _curve =
+      new SigmoidBondingCurve(_basePrice, _linearPriceSlope, _inflectionPrice, _inflectionPoint);
 
     // Pre-calculated expectations, see https://www.desmos.com/calculator/tmeotsiwyi for the
     // curve calculations used to validate these
@@ -58,8 +58,8 @@ contract CurveMath is CTBondingCurveTest {
     uint128 _linearPriceSlope = 2e18; // b = 2
     uint128 _inflectionPrice = 1200e18; // h = 1200
     uint32 _inflectionPoint = 10_000; // g = 10000
-    CTBondingCurve _curve =
-      new CTBondingCurve(_basePrice, _linearPriceSlope, _inflectionPrice, _inflectionPoint);
+    SigmoidBondingCurve _curve =
+      new SigmoidBondingCurve(_basePrice, _linearPriceSlope, _inflectionPrice, _inflectionPoint);
 
     // Pre-calculated expectations
     assertEq(_curve.priceForTokenNumber(1), 5_000_012_000_000_000_000);
@@ -86,8 +86,8 @@ contract CurveMath is CTBondingCurveTest {
     uint128 _inflectionPrice = 44e6; // h = 44 USDC
     uint32 _inflectionPoint = 50; // g = 50 tokens
 
-    CTBondingCurve _curve =
-      new CTBondingCurve(_basePrice, _linearPriceSlope, _inflectionPrice, _inflectionPoint);
+    SigmoidBondingCurve _curve =
+      new SigmoidBondingCurve(_basePrice, _linearPriceSlope, _inflectionPrice, _inflectionPoint);
 
     // forgefmt: disable-start
     assertEq(_curve.priceForTokenNumber(1), 1_017_600);// 1st    token is  $1.0176

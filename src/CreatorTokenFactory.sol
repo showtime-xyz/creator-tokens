@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 
 import {CreatorToken} from "src/CreatorToken.sol";
-import {CTBondingCurve} from "src/CTBondingCurve.sol";
+import {SigmoidBondingCurve} from "src/SigmoidBondingCurve.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {IShowtimeVerifier, Attestation} from "src/lib/IShowtimeVerifier.sol";
 
@@ -26,7 +26,9 @@ contract CreatorTokenFactory {
   }
 
   event CreatorTokenDeployed(
-    CreatorToken indexed creatorToken, CTBondingCurve indexed bondingCurve, DeploymentConfig config
+    CreatorToken indexed creatorToken,
+    SigmoidBondingCurve indexed bondingCurve,
+    DeploymentConfig config
   );
 
   error CreatorTokenFactory__DeploymentNotVerified();
@@ -100,8 +102,8 @@ contract CreatorTokenFactory {
       revert CreatorTokenFactory__InvalidAttestation();
     }
 
-    CTBondingCurve _bondingCurve =
-    new CTBondingCurve(_config.basePrice, _config.linearPriceSlope, _config.inflectionPrice, _config.inflectionPoint);
+    SigmoidBondingCurve _bondingCurve =
+    new SigmoidBondingCurve(_config.basePrice, _config.linearPriceSlope, _config.inflectionPrice, _config.inflectionPoint);
 
     _creatorToken = new CreatorToken(
       _config.name,
