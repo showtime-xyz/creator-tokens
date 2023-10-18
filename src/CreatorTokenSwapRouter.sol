@@ -41,7 +41,7 @@ contract CreatorTokenSwapRouter {
 
   /// @notice Buys a Creator Token with ETH from the caller.
   /// @dev Requires an ETH payment that is equal to or greater than the amount of USDC required to
-  /// purchase a creator Token.
+  /// purchase a creator token.
   /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of USDC
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
@@ -59,7 +59,7 @@ contract CreatorTokenSwapRouter {
 
   /// @notice Buys creator tokens with ETH and sends them to a specified address.
   /// @dev Requires an ETH payment that is equal to or greater than the amount of USDC required to
-  /// purchase a creator Token.
+  /// purchase a creator token.
   /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of USDC
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
@@ -80,7 +80,7 @@ contract CreatorTokenSwapRouter {
 
   /// @notice Buys a specified number of creator tokens with ETH and sends them to the caller.
   /// @dev Requires an ETH payment that is equal to or greater than the amount of USDC required to
-  /// purchase a creator Token.
+  /// purchase `_numOfTokens` of creator tokens.
   /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of USDC
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
@@ -100,7 +100,7 @@ contract CreatorTokenSwapRouter {
   /// @notice Buys a specified number of creator tokens with ETH and sends them to a specified
   /// address.
   /// @dev Requires an ETH payment that is equal to or greater than the amount of USDC required to
-  /// purchase a creator Token.
+  /// purchase `_numOfTokens` of creator tokens.
   /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of USDC
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
