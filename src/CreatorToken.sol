@@ -329,6 +329,9 @@ contract CreatorToken is ERC721Royalty {
   /// @notice Handles the internal minting logic for a token without payment.
   /// @dev The function mints and transfers a token.
   /// @param _to Address where the new creator token should be sent.
+  /// @return _tokenPrice The price of the token in USDC.
+  /// @return _creatorFee The creator's fee in USDC.
+  /// @return _adminFee The admin's fee in USDC.
   function _buyWithoutPayment(address _to)
     internal
     whenNotPaused
@@ -345,6 +348,8 @@ contract CreatorToken is ERC721Royalty {
   /// @dev The function transfers and burns a token.
   /// @param _tokenId ID of the token to be sold.
   /// @return _netProceeds The net proceeds from the sale after deducting fees.
+  /// @return _creatorFee The creator's fee in USDC.
+  /// @return _adminFee The admin's fee in USDC.
   function _sellWithoutPayment(uint256 _tokenId)
     internal
     whenNotPaused
