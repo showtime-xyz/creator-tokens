@@ -43,9 +43,9 @@ contract CreatorTokenSwapRouter {
     payable
     returns (uint256 _amountOut)
   {
-    _amountOut = _swapEthForUSDC(_creatorToken, 1, msg.value);
+    _swapEthForUSDC(_creatorToken, 1, msg.value);
     _approveCreatorToken(_creatorToken, _maxPayment);
-    ICreatorToken(_creatorToken).buy(_to, _maxPayment);
+    _amountOut = ICreatorToken(_creatorToken).buy(_to, _maxPayment);
   }
 
   function bulkBuyWithEth(address _creatorToken, uint256 _numOfTokens, uint256 _maxPayment)
@@ -62,20 +62,17 @@ contract CreatorTokenSwapRouter {
     uint256 _numOfTokens,
     uint256 _maxPayment
   ) public payable returns (uint256 _amountOut) {
-    _amountOut = _swapEthForUSDC(_creatorToken, _numOfTokens, msg.value);
+    _swapEthForUSDC(_creatorToken, _numOfTokens, msg.value);
     _approveCreatorToken(_creatorToken, _maxPayment);
-    ICreatorToken(_creatorToken).bulkBuy(_to, _numOfTokens, _maxPayment);
+    _amountOut = ICreatorToken(_creatorToken).bulkBuy(_to, _numOfTokens, _maxPayment);
   }
 
-  function _swapEthForUSDC(address _creatorToken, uint256 _numOfTokens, uint256 _amountIn)
-    private
-    returns (uint256 _amountOut)
-  {
+  function _swapEthForUSDC(address _creatorToken, uint256 _numOfTokens, uint256 _amountIn) private {
     // // Encoding the inputs for V3_SWAP_EXACT_IN
     bytes[] memory inputs = new bytes[](3);
     (uint256 _tokenPrice, uint256 _creatorFee, uint256 _adminFee) =
       ICreatorToken(_creatorToken).priceToBuyNext(_numOfTokens);
-    _amountOut = _tokenPrice + _creatorFee + _adminFee;
+    uint256 _amountOut = _tokenPrice + _creatorFee + _adminFee;
     // WRAP_ETH
     inputs[0] = abi.encode(address(UNIVERSAL_ROUTER), _amountIn);
     // V3_SWAP_EXACT_OUT
