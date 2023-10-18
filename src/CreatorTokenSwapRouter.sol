@@ -40,8 +40,10 @@ contract CreatorTokenSwapRouter {
   }
 
   /// @notice Buys a Creator Token with ETH from the caller.
-  /// @dev Requires an ETH payment that is equal to or greater than the amount of USDC required to
-  /// purchase a creator token.
+  /// @dev Transactions calling this function must include an ETH payment as its `value`. This ETH
+  /// is then swapped for the equivalent amount of USDC needed to purchase the Creator Token.
+  /// @dev Ensure that the ETH `value` sent with the transaction is equal to or greater than
+  /// the amount of USDC required for the purchase.
   /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of USDC
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
@@ -58,8 +60,10 @@ contract CreatorTokenSwapRouter {
   }
 
   /// @notice Buys creator tokens with ETH and sends them to a specified address.
-  /// @dev Requires an ETH payment that is equal to or greater than the amount of USDC required to
-  /// purchase a creator token.
+  /// @dev Transactions calling this function must include an ETH payment as its `value`. This ETH
+  /// is then swapped for the equivalent amount of USDC needed to purchase the Creator Token.
+  /// @dev Ensure that the ETH `value` sent with the transaction is equal to or greater than
+  /// the amount of USDC required for the purchase.
   /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of USDC
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
@@ -79,8 +83,10 @@ contract CreatorTokenSwapRouter {
   }
 
   /// @notice Buys a specified number of creator tokens with ETH and sends them to the caller.
-  /// @dev Requires an ETH payment that is equal to or greater than the amount of USDC required to
-  /// purchase `_numOfTokens` of creator tokens.
+  /// @dev Transactions calling this function must include an ETH payment as its `value`. This ETH
+  /// is then swapped for the equivalent amount of USDC needed to purchase the Creator Tokens.
+  /// @dev Ensure that the ETH `value` sent with the transaction is equal to or greater than
+  /// the amount of USDC required for the purchase.
   /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of USDC
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
@@ -99,8 +105,10 @@ contract CreatorTokenSwapRouter {
 
   /// @notice Buys a specified number of creator tokens with ETH and sends them to a specified
   /// address.
-  /// @dev Requires an ETH payment that is equal to or greater than the amount of USDC required to
-  /// purchase `_numOfTokens` of creator tokens.
+  /// @dev Transactions calling this function must include an ETH payment as its `value`. This ETH
+  /// is then swapped for the equivalent amount of USDC needed to purchase the Creator Tokens.
+  /// @dev Ensure that the ETH `value` sent with the transaction is equal to or greater than
+  /// the amount of USDC required for the purchase.
   /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of USDC
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
