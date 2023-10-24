@@ -22,16 +22,18 @@ contract Deploy is Script {
     // Setup Domain Separator
     bytes32 _domainSeparator = _verifier.domainSeparator();
 
-    // Deploy the contract
+    // Deploy the factory contract
     vm.broadcast();
-
     CreatorTokenFactory creatorTokenFactory = new CreatorTokenFactory(_verifier, _domainSeparator);
+
     require(creatorTokenFactory.domainSeparator() == _domainSeparator, "Domain separator Mismatch");
 
+    // Deploy the swap router contract
+    vm.broadcast();
     CreatorTokenSwapRouter creatorTokenSwapRouter =
       new CreatorTokenSwapRouter(_universalRouterAddress, _wethAddress, _usdcAddress);
 
-    console2.log("Deployed contract address %s", address(creatorTokenFactory));
-    console2.log("Deployed contract address %s", address(creatorTokenSwapRouter));
+    console2.log("Deployed factory contract address %s", address(creatorTokenFactory));
+    console2.log("Deployed router contract address %s", address(creatorTokenSwapRouter));
   }
 }
