@@ -131,7 +131,7 @@ contract CreatorTokenSwapRouter {
 
   /// @notice Swaps ETH for USDC.
   /// @param _creatorToken The address of the creator token.
-  /// @param _numOfTokens The number of tokens to swap.
+  /// @param _numOfTokens The number of tokens to buy.
   /// @param _amountIn The amount of ETH to swap.
   function _swapEthForUSDC(address _creatorToken, uint256 _numOfTokens, uint256 _amountIn) private {
     // // Encoding the inputs for V3_SWAP_EXACT_IN
