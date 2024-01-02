@@ -23,7 +23,7 @@ _**Please read the full README before using this template.**_
 3. Run the following command to deploy the CreatorTokenFactory contract:
 
 ```bash
-forge script Deploy --sig "run(address,address,address,address)" <ShowtimeVerifier Contract Address> <universalRouter> <WETH> <USDC> --fork-url $RPC_URL_OF_CHOICE --private-key <private key> --broadcast
+forge script Deploy --sig "run(address,address,address)" <universalRouter> <WETH> <USDC> --fork-url $RPC_URL_OF_CHOICE --private-key <private key> --broadcast
 ```
 
 To use this template, use one of the below approaches:
