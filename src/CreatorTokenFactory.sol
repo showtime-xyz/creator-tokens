@@ -30,7 +30,6 @@ contract CreatorTokenFactory {
   /// @param inflectionPrice The price at the point where the curve switches from quadratic to
   /// square root.
   /// @param inflectionPoint Where the curve switches from quadratic to square root.
-  /// @param attestationDigest The ERC712 digest of the Attestation object for this deployment.
   struct DeploymentConfig {
     string name;
     string symbol;
