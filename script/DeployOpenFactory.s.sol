@@ -7,7 +7,7 @@ import {Script} from "forge-std/Script.sol";
 import {console2} from "forge-std/console2.sol";
 import {OpenCreatorTokenFactory} from "src/OpenCreatorTokenFactory.sol";
 
-contract Deploy is Script {
+contract DeployOpenFactory is Script {
   /// @notice Deploy the contract
   function run() public {
     // Deploy the factory contract
