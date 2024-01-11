@@ -11,12 +11,24 @@ import {CreatorTokenSwapRouter} from "src/CreatorTokenSwapRouter.sol";
 
 contract Deploy is Script {
   /// @notice Deploy the contract
-  function run(address _universalRouterAddress, address _wethAddress, address _usdcAddress) public {
+  function run(
+    address _verifierAddress,
+    address _universalRouterAddress,
+    address _wethAddress,
+    address _usdcAddress
+  ) public {
+    ITestableShowtimeVerifier _verifier = ITestableShowtimeVerifier(_verifierAddress);
+    if (address(_verifier).code.length == 0) revert("Verifier address is not a contract");
+    // Setup Domain Separator
+    bytes32 _domainSeparator = _verifier.domainSeparator();
+
     // Deploy the factory contract
     vm.broadcast();
-    CreatorTokenFactory creatorTokenFactory = new CreatorTokenFactory();
+    CreatorTokenFactory creatorTokenFactory = new CreatorTokenFactory(_verifier, _domainSeparator);
 
-    // Deploy the swap router contract, commenting out because already deployed
+    require(creatorTokenFactory.domainSeparator() == _domainSeparator, "Domain separator Mismatch");
+
+    // Deploy the swap router contract
     vm.broadcast();
     CreatorTokenSwapRouter creatorTokenSwapRouter =
       new CreatorTokenSwapRouter(_universalRouterAddress, _wethAddress, _usdcAddress);
