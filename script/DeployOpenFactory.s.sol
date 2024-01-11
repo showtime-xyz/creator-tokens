@@ -8,9 +8,7 @@ import {console2} from "forge-std/console2.sol";
 import {OpenCreatorTokenFactory} from "src/OpenCreatorTokenFactory.sol";
 
 contract DeployOpenFactory is Script {
-  /// @notice Deploy the contract
   function run() public {
-    // Deploy the factory contract
     vm.broadcast();
     OpenCreatorTokenFactory openCreatorTokenFactory = new OpenCreatorTokenFactory();
 
