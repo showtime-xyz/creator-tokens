@@ -21,7 +21,7 @@ contract CreatorTokenSwapRouter {
   bytes private constant COMMANDS =
     abi.encodePacked(bytes1(uint8(0x0b)), bytes1(uint8(0x01)), bytes1(uint8(0x0c)));
   /// @notice Low fee tier for Uniswap V3 WETH-DEGEN swaps.
-  bytes3 private constant LOW_FEE_TIER = bytes3(uint24(500));
+  bytes3 private constant LOW_FEE_TIER = bytes3(uint24(3000));
 
   /// @notice Path for swapping WETH to DEGEN.
   bytes private path;
@@ -44,7 +44,8 @@ contract CreatorTokenSwapRouter {
   /// is then swapped for the equivalent amount of DEGEN needed to purchase the Creator Token.
   /// @dev Ensure that the ETH `value` sent with the transaction is equal to or greater than
   /// the amount of DEGEN required for the purchase.
-  /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of DEGEN
+  /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of
+  /// DEGEN
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
   /// in `test/SwapRouter.fork.8453.t.sol.sol`
@@ -64,7 +65,8 @@ contract CreatorTokenSwapRouter {
   /// is then swapped for the equivalent amount of DEGEN needed to purchase the Creator Token.
   /// @dev Ensure that the ETH `value` sent with the transaction is equal to or greater than
   /// the amount of DEGEN required for the purchase.
-  /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of DEGEN
+  /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of
+  /// DEGEN
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
   /// in `test/SwapRouter.fork.8453.t.sol.sol`
@@ -87,7 +89,8 @@ contract CreatorTokenSwapRouter {
   /// is then swapped for the equivalent amount of DEGEN needed to purchase the Creator Tokens.
   /// @dev Ensure that the ETH `value` sent with the transaction is equal to or greater than
   /// the amount of DEGEN required for the purchase.
-  /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of DEGEN
+  /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of
+  /// DEGEN
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
   /// in `test/SwapRouter.fork.8453.t.sol.sol`
@@ -109,7 +112,8 @@ contract CreatorTokenSwapRouter {
   /// is then swapped for the equivalent amount of DEGEN needed to purchase the Creator Tokens.
   /// @dev Ensure that the ETH `value` sent with the transaction is equal to or greater than
   /// the amount of DEGEN required for the purchase.
-  /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of DEGEN
+  /// @dev You can get a quote for the amount of ETH you have to pay to get a certain amount of
+  /// DEGEN
   /// by calling Uniswap's `QuoterV2` contract off-chain. Check Uniswap docs:
   /// https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2 and `quote` function
   /// in `test/SwapRouter.fork.8453.t.sol.sol`
