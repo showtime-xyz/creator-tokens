@@ -26,6 +26,12 @@ _**Please read the full README before using this template.**_
 forge script Deploy --sig "run(address,address,address,address)" <ShowtimeVerifier Contract Address> <universalRouter> <WETH> <USDC> --fork-url $RPC_URL_OF_CHOICE --private-key <private key> --broadcast
 ```
 
+You can also deploy a factory contract without a ShowtimeVerifier contract by running the following command:
+
+```bash
+forge script Deploy --sig "run(address,address,address)" <universalRouter> <WETH> <USDC> --fork-url $RPC_URL_OF_CHOICE --private-key <private key> --broadcast
+```
+
 To use this template, use one of the below approaches:
 
 1. Run `forge init --template ScopeLift/foundry-template` in an empty directory.
