@@ -8,7 +8,7 @@ import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 /// @title CreatorTokenSwapRouter
 /// @notice A contract for swapping ETH to DEGEN and then buying Creator Tokens.
 /// @dev Make sure to get a quote for ETH to Creator Token conversion before interacting.
-contract CreatorTokenSwapRouter {
+contract CreatorTokenSwapRouterDegen {
   /// @notice Uniswap UniversalRouter interface which is used to execute trades.
   IUniversalRouter private immutable UNIVERSAL_ROUTER;
   /// @notice Address of the Wrapped Ether (WETH) token.
